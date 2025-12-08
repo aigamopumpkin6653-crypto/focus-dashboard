@@ -3,10 +3,37 @@ import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, C
 
 const StickyNoteTodo = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [tasks, setTasks] = useState([]);
-  const [completedTasks, setCompletedTasks] = useState([]);
+  
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem('tasks');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [completedTasks, setCompletedTasks] = useState(() => {
+    const saved = localStorage.getItem('completedTasks');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [dailyNotes, setDailyNotes] = useState(() => {
+    const saved = localStorage.getItem('dailyNotes');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
   const [showAddTask, setShowAddTask] = useState(false);
   const [categories, setCategories] = useState(['仕事', '学習', '個人', 'その他']);
+  
+  useEffect(() => {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+  }, [completedTasks]);
+
+  useEffect(() => {
+    localStorage.setItem('dailyNotes', JSON.stringify(dailyNotes));
+  }, [dailyNotes]);
+  
   const [newTask, setNewTask] = useState({ 
     name: '', 
     category: '仕事', 
@@ -20,7 +47,6 @@ const StickyNoteTodo = () => {
   const [showMemoModal, setShowMemoModal] = useState(false);
   const [memoTask, setMemoTask] = useState(null);
   const [memoContent, setMemoContent] = useState('');
-  const [dailyNotes, setDailyNotes] = useState({});
   const [showDailyNoteModal, setShowDailyNoteModal] = useState(false);
   const [dailyNoteTab, setDailyNoteTab] = useState('plan');
   const [showCalendar, setShowCalendar] = useState(false);
