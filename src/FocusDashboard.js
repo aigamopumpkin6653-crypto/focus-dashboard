@@ -614,8 +614,8 @@ const StickyNoteTodo = () => {
                       className="p-4 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md group relative"
                       style={{ 
                         backgroundColor: dustyColors[task.category],
-                        minWidth: '180px',
-                        maxWidth: '220px'
+                        minWidth: '140px',
+                        maxWidth: '160px'
                       }}
                       onClick={() => completeTask(task)}
                     >
@@ -667,8 +667,8 @@ const StickyNoteTodo = () => {
                       className="p-4 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md group relative"
                       style={{ 
                         backgroundColor: dustyColors[task.category],
-                        minWidth: '180px',
-                        maxWidth: '220px'
+                        minWidth: '140px',
+                        maxWidth: '160px'
                       }}
                       onClick={() => completeTask(task)}
                     >
@@ -718,8 +718,8 @@ const StickyNoteTodo = () => {
                       className="p-4 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md group relative"
                       style={{ 
                         backgroundColor: dustyColors[task.category],
-                        minWidth: '180px',
-                        maxWidth: '220px'
+                        minWidth: '140px',
+                        maxWidth: '160px'
                       }}
                       onClick={() => completeTask(task)}
                     >
@@ -785,8 +785,8 @@ const StickyNoteTodo = () => {
                   className="p-4 rounded-lg shadow-sm cursor-move transition-all hover:shadow-md group relative opacity-70"
                   style={{ 
                     backgroundColor: dustyColors[task.category],
-                    minWidth: '180px',
-                    maxWidth: '220px'
+                    minWidth: '140px',
+                    maxWidth: '160px'
                   }}
                   draggable
                   onDragStart={() => handleDragStart(task, true)}
