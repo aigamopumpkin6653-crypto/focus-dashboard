@@ -49,7 +49,6 @@ const StickyNoteTodo = () => {
   const [memoContent, setMemoContent] = useState('');
   const [showDailyNoteModal, setShowDailyNoteModal] = useState(false);
   const [dailyNoteTab, setDailyNoteTab] = useState('plan');
-  const [showCalendar, setShowCalendar] = useState(false);
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -251,22 +250,27 @@ const StickyNoteTodo = () => {
               <button onClick={() => changeDate(-1)} className="p-1.5 rounded transition-all hover:bg-gray-200">
                 <ChevronLeft size={20} />
               </button>
-              <h1 className="text-xl md:text-3xl font-bold" style={{ color: '#2D2A27' }}>
-                {selectedDate.getMonth() + 1}/{selectedDate.getDate()} ({['日', '月', '火', '水', '木', '金', '土'][selectedDate.getDay()]})
-              </h1>
+              <button 
+  onClick={() => setShowDailyNoteModal(true)}
+  className="text-xl md:text-3xl font-bold cursor-pointer hover:opacity-70 transition-all" 
+  style={{ color: '#2D2A27' }}
+  title="カレンダーと日記を開く"
+>
+  {selectedDate.getMonth() + 1}/{selectedDate.getDate()} ({['日', '月', '火', '水', '木', '金', '土'][selectedDate.getDay()]})
+</button>
               <button onClick={() => changeDate(1)} className="p-1.5 rounded transition-all hover:bg-gray-200">
                 <ChevronRight size={20} />
               </button>
             </div>
             <div className="flex items-center gap-2">
               <button 
-                onClick={() => setShowDailyNoteModal(true)} 
-                className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                style={{ backgroundColor: '#E6D48F', color: 'white' }}
-                title="日記"
-              >
-                <BookOpen size={22} />
-              </button>
+  onClick={() => setSelectedDate(new Date())} 
+  className="p-2.5 rounded-lg transition-all hover:opacity-80"
+  style={{ backgroundColor: '#90B6C8', color: 'white' }}
+  title="今日に戻る"
+>
+  <Calendar size={22} />
+</button>
               <button 
                 onClick={() => setShowAddTask(!showAddTask)} 
                 className="px-4 py-2 rounded text-base transition-all hover:opacity-80"
@@ -430,7 +434,10 @@ const StickyNoteTodo = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowDailyNoteModal(false)}>
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#FDF8F0' }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: '#4A4542' }}>📓 今日の日記</h3>
+              <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
+  <Calendar size={20} />
+  カレンダーと日記
+</h3>
               <button onClick={() => setShowDailyNoteModal(false)} className="p-1 rounded transition-all hover:bg-gray-200">
                 <X size={20} />
               </button>
