@@ -239,7 +239,45 @@ const StickyNoteTodo = () => {
       }
     });
   };
+  const exportData = () => {
+    const data = {
+      tasks,
+      completedTasks,
+      dailyNotes,
+      exportDate: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `focus-dashboard-backup-${formatDateStr(new Date())}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
+  const importData = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        
+        if (data.tasks) setTasks(data.tasks);
+        if (data.completedTasks) setCompletedTasks(data.completedTasks);
+        if (data.dailyNotes) setDailyNotes(data.dailyNotes);
+        
+        alert(`✅ データを復元しました！\n\nタスク: ${data.tasks?.length || 0}件\n完了済み: ${data.completedTasks?.length || 0}件\n日記: ${Object.keys(data.dailyNotes || {}).length}日分`);
+      } catch (error) {
+        alert('❌ ファイルの読み込みに失敗しました');
+      }
+    };
+    reader.readAsText(file);
+    
+    event.target.value = '';
+  };
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5EAD8' }}>
       {/* ヘッダー */}
@@ -271,6 +309,28 @@ const StickyNoteTodo = () => {
 >
   <Calendar size={22} />
 </button>
+              <button 
+                onClick={exportData} 
+                className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                style={{ backgroundColor: '#A5BFA8', color: 'white' }}
+                title="バックアップ"
+              >
+                📥
+              </button>
+              
+              <label 
+                className="p-2.5 rounded-lg transition-all hover:opacity-80 cursor-pointer"
+                style={{ backgroundColor: '#D37A68', color: 'white' }}
+                title="復元"
+              >
+                📤
+                <input 
+                  type="file" 
+                  accept=".json" 
+                  onChange={importData} 
+                  className="hidden"
+                />
+              </label>
               <button 
                 onClick={() => setShowAddTask(!showAddTask)} 
                 className="px-4 py-2 rounded text-base transition-all hover:opacity-80"
