@@ -332,12 +332,13 @@ const StickyNoteTodo = () => {
                 />
               </label>
               <button 
-                onClick={() => setShowAddTask(!showAddTask)} 
-                className="px-4 py-2 rounded text-base transition-all hover:opacity-80"
-                style={{ backgroundColor: '#90B6C8', color: 'white' }}
-              >
-                <Plus size={18} className="inline mr-1" />タスク追加
-              </button>
+  onClick={() => setShowAddTask(!showAddTask)} 
+  className="p-2.5 rounded-lg transition-all hover:opacity-80"
+  style={{ backgroundColor: '#90B6C8', color: 'white' }}
+  title="タスク追加"
+>
+  <Plus size={22} />
+</button>
             </div>
           </div>
         </div>
