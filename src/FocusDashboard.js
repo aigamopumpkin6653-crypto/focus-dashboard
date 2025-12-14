@@ -288,13 +288,18 @@ const StickyNoteTodo = () => {
               <button onClick={() => changeDate(-1)} className="p-1.5 rounded transition-all hover:bg-gray-200">
                 <ChevronLeft size={20} />
               </button>
-              <button 
+<button 
   onClick={() => setShowDailyNoteModal(true)}
-  className="text-xl md:text-3xl font-bold cursor-pointer hover:opacity-70 transition-all" 
+  className="font-bold cursor-pointer hover:opacity-70 transition-all flex items-baseline gap-1" 
   style={{ color: '#2D2A27' }}
   title="カレンダーと日記を開く"
 >
-  {selectedDate.getMonth() + 1}/{selectedDate.getDate()} ({['日', '月', '火', '水', '木', '金', '土'][selectedDate.getDay()]})
+  <span className="text-xl md:text-3xl">
+    {selectedDate.getMonth() + 1}/{selectedDate.getDate()}
+  </span>
+  <span className="text-sm md:text-lg">
+    ({['日', '月', '火', '水', '木', '金', '土'][selectedDate.getDay()]})
+  </span>
 </button>
               <button onClick={() => changeDate(1)} className="p-1.5 rounded transition-all hover:bg-gray-200">
                 <ChevronRight size={20} />
