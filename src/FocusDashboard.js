@@ -281,13 +281,27 @@ const StickyNoteTodo = () => {
       exportDate: new Date().toISOString()
     };
     
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `focus-dashboard-backup-${formatDateStr(new Date())}.json`;
+    
+    // iOSのための追加処理
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    
+    // クリーンアップ
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    
+    // ユーザーに確認
+    setTimeout(() => {
+      alert(`✅ バックアップファイルを作成しました！\n\nタスク: ${tasks.length}件\n完了済み: ${completedTasks.length}件\n日記: ${Object.keys(dailyNotes).length}日分\n\nダウンロードフォルダを確認してください。`);
+    }, 200);
   };
 
   const importData = (event) => {
