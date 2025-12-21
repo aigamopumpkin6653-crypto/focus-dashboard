@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar, Search, MoreVertical, Download, Upload } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar, Search, MoreVertical, Download, Upload, ArrowRight, Check, RefreshCw } from 'lucide-react';
 
 const StickyNoteTodo = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -52,6 +52,8 @@ const StickyNoteTodo = () => {
   const [dailyNoteTab, setDailyNoteTab] = useState('plan');
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [carryOverMode, setCarryOverMode] = useState(false);
+  const [selectedCarryOverTasks, setSelectedCarryOverTasks] = useState([]);
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -131,6 +133,15 @@ const StickyNoteTodo = () => {
     return todayTasks.filter(t => !t.isRoutine);
   }, [todayTasks]);
 
+  // 今日より前の日付かどうか
+  const isPastDate = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+    return selected < today;
+  }, [selectedDate]);
+
   // 日記の検索マッチ判定
   const diaryMatchesSearch = useMemo(() => {
     if (!searchKeyword.trim()) return false;
@@ -180,6 +191,110 @@ const StickyNoteTodo = () => {
     setCompletedTasks(completedTasks.filter(ct => 
       !(ct.id === completedTask.id && formatDateStr(ct.completedAt) === selectedDateStr)
     ));
+  };
+
+  const moveTaskToToday = (task) => {
+    const today = new Date();
+    const updatedTask = {
+      ...task,
+      createdAt: today.toISOString(),
+      carriedOverFrom: task.carriedOverFrom || formatDateStr(task.createdAt)
+    };
+    
+    // 元のタスクに繰り越し済みフラグを追加
+    setTasks(tasks.map(t => 
+      t.id === task.id 
+        ? { ...t, carriedOverTo: formatDateStr(today) }
+        : t
+    ));
+    
+    // 新しいタスクとして今日に追加
+    setTimeout(() => {
+      setTasks(prev => [...prev, { ...updatedTask, id: Date.now() }]);
+    }, 100);
+    
+    // 今日の日付に移動
+    setSelectedDate(today);
+  };
+
+  const toggleCarryOverSelection = (taskId) => {
+    if (selectedCarryOverTasks.includes(taskId)) {
+      setSelectedCarryOverTasks(selectedCarryOverTasks.filter(id => id !== taskId));
+    } else {
+      setSelectedCarryOverTasks([...selectedCarryOverTasks, taskId]);
+    }
+  };
+
+  const executeCarryOver = () => {
+    const today = new Date();
+    const tasksToCarryOver = tasks.filter(t => selectedCarryOverTasks.includes(t.id));
+    
+    // 選択されたタスクに繰り越し済みフラグを追加
+    setTasks(tasks.map(t => 
+      selectedCarryOverTasks.includes(t.id)
+        ? { ...t, carriedOverTo: formatDateStr(today) }
+        : t
+    ));
+    
+    // 新しいタスクとして今日に追加
+    setTimeout(() => {
+      const newTasks = tasksToCarryOver.map(task => ({
+        ...task,
+        id: Date.now() + Math.random(),
+        createdAt: today.toISOString(),
+        carriedOverFrom: task.carriedOverFrom || formatDateStr(task.createdAt),
+        carriedOverTo: undefined
+      }));
+      setTasks(prev => [...prev, ...newTasks]);
+    }, 100);
+    
+    // モードをリセット
+    setCarryOverMode(false);
+    setSelectedCarryOverTasks([]);
+    setSelectedDate(today);
+  };
+
+  const carryOverAllTasks = () => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = formatDateStr(yesterday);
+    
+    // 昨日の通常タスク（未完了・ルーティーン以外・繰り越し済みでないもの）を取得
+    const yesterdayTasks = tasks.filter(t => {
+      if (t.isRoutine || t.carriedOverTo) return false;
+      const taskDateStr = formatDateStr(t.createdAt);
+      const isCompletedYesterday = completedTasks.some(ct => 
+        ct.id === t.id && formatDateStr(ct.completedAt) === yesterdayStr
+      );
+      return taskDateStr === yesterdayStr && !isCompletedYesterday;
+    });
+    
+    if (yesterdayTasks.length === 0) {
+      alert('昨日の未完了タスクはありません');
+      return;
+    }
+    
+    // 繰り越し処理
+    setTasks(tasks.map(t => 
+      yesterdayTasks.some(yt => yt.id === t.id)
+        ? { ...t, carriedOverTo: formatDateStr(today) }
+        : t
+    ));
+    
+    setTimeout(() => {
+      const newTasks = yesterdayTasks.map(task => ({
+        ...task,
+        id: Date.now() + Math.random(),
+        createdAt: today.toISOString(),
+        carriedOverFrom: task.carriedOverFrom || formatDateStr(task.createdAt),
+        carriedOverTo: undefined
+      }));
+      setTasks(prev => [...prev, ...newTasks]);
+      alert(`${yesterdayTasks.length}件のタスクを繰り越しました！`);
+    }, 100);
+    
+    setSelectedDate(today);
   };
 
   const handleDragStart = (task, isCompleted = false) => {
@@ -363,76 +478,122 @@ const StickyNoteTodo = () => {
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setSelectedDate(new Date())} 
-                className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                style={{ backgroundColor: '#D37A68', color: 'white' }}
-                title="今日に戻る"
-              >
-                <Calendar size={22} />
-              </button>
-              <button 
-                onClick={() => setShowAddTask(!showAddTask)} 
-                className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                style={{ backgroundColor: '#E6D48F', color: 'white' }}
-                title="タスク追加"
-              >
-                <Plus size={22} />
-              </button>
-              <div className="relative">
-                <button 
-                  onClick={() => setShowMenu(!showMenu)} 
-                  className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                  style={{ backgroundColor: showMenu ? '#D37A68' : '#90B6C8', color: 'white' }}
-                  title="メニュー"
-                >
-                  <MoreVertical size={22} />
-                </button>
-                {showMenu && (
-                  <div 
-                    className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
-                    style={{ backgroundColor: '#FDF8F0', border: '2px solid #E8D4BC' }}
+              {carryOverMode ? (
+                <>
+                  <button 
+                    onClick={() => {
+                      setCarryOverMode(false);
+                      setSelectedCarryOverTasks([]);
+                    }} 
+                    className="px-3 py-2 rounded-lg transition-all hover:opacity-80 text-sm"
+                    style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
                   >
-                    <button
-                      onClick={() => {
-                        setShowSearchBar(!showSearchBar);
-                        setShowMenu(false);
-                      }}
-                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
-                      style={{ color: '#4A4542' }}
+                    キャンセル
+                  </button>
+                  <button 
+                    onClick={executeCarryOver} 
+                    className="px-3 py-2 rounded-lg transition-all hover:opacity-80 text-sm font-medium"
+                    style={{ backgroundColor: '#B8D4A8', color: 'white' }}
+                    disabled={selectedCarryOverTasks.length === 0}
+                  >
+                    決定 ({selectedCarryOverTasks.length})
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setSelectedDate(new Date())} 
+                    className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#D37A68', color: 'white' }}
+                    title="今日に戻る"
+                  >
+                    <Calendar size={22} />
+                  </button>
+                  {isPastDate && (
+                    <button 
+                      onClick={() => setCarryOverMode(true)} 
+                      className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                      style={{ backgroundColor: '#A5BFA8', color: 'white' }}
+                      title="繰り越しモード"
                     >
-                      <Search size={18} />
-                      <span className="text-sm">検索</span>
+                      <RefreshCw size={22} />
                     </button>
-                    <button
-                      onClick={() => {
-                        exportData();
-                        setShowMenu(false);
-                      }}
-                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
-                      style={{ color: '#4A4542' }}
+                  )}
+                  <button 
+                    onClick={() => setShowAddTask(!showAddTask)} 
+                    className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#E6D48F', color: 'white' }}
+                    title="タスク追加"
+                  >
+                    <Plus size={22} />
+                  </button>
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowMenu(!showMenu)} 
+                      className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                      style={{ backgroundColor: showMenu ? '#D37A68' : '#90B6C8', color: 'white' }}
+                      title="メニュー"
                     >
-                      <Download size={18} />
-                      <span className="text-sm">バックアップ</span>
+                      <MoreVertical size={22} />
                     </button>
-                    <label
-                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-all cursor-pointer"
-                      style={{ color: '#4A4542' }}
-                    >
-                      <Upload size={18} />
-                      <span className="text-sm">復元</span>
-                      <input 
-                        type="file" 
-                        accept=".json" 
-                        onChange={(e) => {
-                          importData(e);
-                        }} 
-                        className="hidden"
-                      />
-                    </label>
+                    {showMenu && (
+                      <div 
+                        className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
+                        style={{ backgroundColor: '#FDF8F0', border: '2px solid #E8D4BC' }}
+                      >
+                        <button
+                          onClick={() => {
+                            setShowSearchBar(!showSearchBar);
+                            setShowMenu(false);
+                          }}
+                          className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
+                          style={{ color: '#4A4542' }}
+                        >
+                          <Search size={18} />
+                          <span className="text-sm">検索</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            carryOverAllTasks();
+                            setShowMenu(false);
+                          }}
+                          className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
+                          style={{ color: '#4A4542' }}
+                        >
+                          <RefreshCw size={18} />
+                          <span className="text-sm">昨日を一括繰り越し</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            exportData();
+                            setShowMenu(false);
+                          }}
+                          className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
+                          style={{ color: '#4A4542' }}
+                        >
+                          <Download size={18} />
+                          <span className="text-sm">バックアップ</span>
+                        </button>
+                        <label
+                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-all cursor-pointer"
+                          style={{ color: '#4A4542' }}
+                        >
+                          <Upload size={18} />
+                          <span className="text-sm">復元</span>
+                          <input 
+                            type="file" 
+                            accept=".json" 
+                            onChange={(e) => {
+                              importData(e);
+                            }} 
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -860,49 +1021,99 @@ const StickyNoteTodo = () => {
             {normalTasks.length > 0 && (
               <div className="mb-4">
                 <div className="flex flex-wrap gap-3">
-                  {normalTasks.map(task => (
-                    <div
-                      key={task.id}
-                      className="p-4 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md group relative"
-                      style={{ 
-                        backgroundColor: dustyColors[task.category],
-                        minWidth: '140px',
-                        maxWidth: '160px'
-                      }}
-                      onClick={() => completeTask(task)}
-                    >
-                      <div className="text-white font-medium text-sm mb-1">{task.name}</div>
-                      <div className="text-white text-xs opacity-80 flex items-center gap-2">
-                        <span>{task.category}</span>
-                        {task.memo && (
-                          <FileText size={12} className="text-white opacity-70" title="メモあり" />
+                  {normalTasks.map(task => {
+                    const isSelected = selectedCarryOverTasks.includes(task.id);
+                    const isCarriedOver = task.carriedOverTo;
+                    
+                    return (
+                      <div
+                        key={task.id}
+                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
+                        style={{ 
+                          backgroundColor: isCarriedOver ? '#C8C8C8' : isSelected ? '#B8D4A8' : dustyColors[task.category],
+                          minWidth: '140px',
+                          maxWidth: '160px',
+                          cursor: carryOverMode && !isCarriedOver ? 'pointer' : isCarriedOver ? 'not-allowed' : 'pointer',
+                          opacity: isCarriedOver ? 0.6 : 1,
+                          border: isSelected ? '3px solid #8AB88A' : 'none',
+                          transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                        }}
+                        onClick={() => {
+                          if (carryOverMode && !isCarriedOver) {
+                            toggleCarryOverSelection(task.id);
+                          } else if (!isCarriedOver) {
+                            completeTask(task);
+                          }
+                        }}
+                      >
+                        {carryOverMode && !isCarriedOver && (
+                          <div 
+                            className="absolute top-2 right-2 w-6 h-6 rounded-full border-3 flex items-center justify-center shadow-lg" 
+                            style={{ 
+                              backgroundColor: isSelected ? '#8AB88A' : 'rgba(255, 255, 255, 0.3)',
+                              borderColor: 'white',
+                              borderWidth: '2px'
+                            }}
+                          >
+                            {isSelected && <Check size={18} className="text-white" strokeWidth={3} />}
+                          </div>
+                        )}
+                        <div className="text-white font-medium text-sm mb-1" style={{ fontWeight: isSelected ? 'bold' : 'normal' }}>
+                          {task.name}
+                        </div>
+                        {task.carriedOverFrom && (
+                          <div className="text-white text-xs mb-1" style={{ opacity: 0.9 }}>
+                            🔄 {task.carriedOverFrom}から
+                          </div>
+                        )}
+                        {isCarriedOver && (
+                          <div className="text-white text-xs mb-1" style={{ opacity: 0.9 }}>
+                            ✅ {task.carriedOverTo}に繰り越し済み
+                          </div>
+                        )}
+                        <div className="text-white text-xs opacity-80 flex items-center gap-2">
+                          <span>{task.category}</span>
+                          {task.memo && (
+                            <FileText size={12} className="text-white opacity-70" title="メモあり" />
+                          )}
+                        </div>
+                        {!carryOverMode && !isCarriedOver && (
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            {isPastDate && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); moveTaskToToday(task); }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
+                                title="今日に繰り越す"
+                              >
+                                <ArrowRight size={14} className="text-white" />
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => openMemoModal(task, e)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
+                              title="メモ"
+                            >
+                              <FileText size={14} className="text-white" />
+                            </button>
+                            <button
+                              onClick={(e) => startEditTask(task, e)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
+                              title="編集"
+                            >
+                              <Edit2 size={14} className="text-white" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
+                              title="削除"
+                            >
+                              <X size={14} className="text-white" />
+                            </button>
+                          </div>
                         )}
                       </div>
-                      <div className="absolute top-2 right-2 flex gap-1">
-                        <button
-                          onClick={(e) => openMemoModal(task, e)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                          title="メモ"
-                        >
-                          <FileText size={14} className="text-white" />
-                        </button>
-                        <button
-                          onClick={(e) => startEditTask(task, e)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                          title="編集"
-                        >
-                          <Edit2 size={14} className="text-white" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                          title="削除"
-                        >
-                          <X size={14} className="text-white" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
