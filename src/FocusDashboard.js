@@ -344,7 +344,7 @@ const StickyNoteTodo = () => {
               <button 
                 onClick={() => setSelectedDate(new Date())} 
                 className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                style={{ backgroundColor: '#90B6C8', color: 'white' }}
+                style={{ backgroundColor: '#D37A68', color: 'white' }}
                 title="今日に戻る"
               >
                 <Calendar size={22} />
@@ -352,7 +352,7 @@ const StickyNoteTodo = () => {
               <button 
                 onClick={() => setShowAddTask(!showAddTask)} 
                 className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                style={{ backgroundColor: '#90B6C8', color: 'white' }}
+                style={{ backgroundColor: '#E6D48F', color: 'white' }}
                 title="タスク追加"
               >
                 <Plus size={22} />
@@ -361,7 +361,7 @@ const StickyNoteTodo = () => {
                 <button 
                   onClick={() => setShowMenu(!showMenu)} 
                   className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                  style={{ backgroundColor: showMenu ? '#E6D48F' : '#A5BFA8', color: 'white' }}
+                  style={{ backgroundColor: showMenu ? '#D37A68' : '#90B6C8', color: 'white' }}
                   title="メニュー"
                 >
                   <MoreVertical size={22} />
