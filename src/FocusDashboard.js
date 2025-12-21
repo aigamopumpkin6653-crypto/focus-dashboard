@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar, Search } from 'lucide-react';
 
 const StickyNoteTodo = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [searchKeyword, setSearchKeyword] = useState('');
   
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem('tasks');
@@ -49,6 +50,7 @@ const StickyNoteTodo = () => {
   const [memoContent, setMemoContent] = useState('');
   const [showDailyNoteModal, setShowDailyNoteModal] = useState(false);
   const [dailyNoteTab, setDailyNoteTab] = useState('plan');
+  const [showSearchBar, setShowSearchBar] = useState(false);
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -70,8 +72,14 @@ const StickyNoteTodo = () => {
 
   const selectedDateStr = useMemo(() => formatDateStr(selectedDate), [selectedDate]);
 
+  // 検索フィルター関数
+  const matchesSearch = (text) => {
+    if (!searchKeyword.trim()) return true;
+    return text.toLowerCase().includes(searchKeyword.toLowerCase());
+  };
+
   const todayTasks = useMemo(() => {
-    return tasks.filter(t => {
+    const filtered = tasks.filter(t => {
       if (t.isRoutine) {
         const taskCreatedStr = formatDateStr(t.createdAt);
         const isCompletedToday = completedTasks.some(ct => 
@@ -85,14 +93,30 @@ const StickyNoteTodo = () => {
       );
       return taskDateStr === selectedDateStr && !isCompletedToday;
     });
-  }, [tasks, selectedDateStr, completedTasks]);
+
+    // 検索フィルター適用
+    if (searchKeyword.trim()) {
+      return filtered.filter(t => 
+        matchesSearch(t.name) || matchesSearch(t.memo || '')
+      );
+    }
+    return filtered;
+  }, [tasks, selectedDateStr, completedTasks, searchKeyword]);
 
   const todayCompleted = useMemo(() => {
-    return completedTasks.filter(ct => {
+    const filtered = completedTasks.filter(ct => {
       const completedDateStr = formatDateStr(ct.completedAt);
       return completedDateStr === selectedDateStr;
     });
-  }, [completedTasks, selectedDateStr]);
+
+    // 検索フィルター適用
+    if (searchKeyword.trim()) {
+      return filtered.filter(t => 
+        matchesSearch(t.name) || matchesSearch(t.memo || '')
+      );
+    }
+    return filtered;
+  }, [completedTasks, selectedDateStr, searchKeyword]);
 
   const morningRoutines = useMemo(() => {
     return todayTasks.filter(t => t.isRoutine && t.routineTime === 'morning');
@@ -105,6 +129,14 @@ const StickyNoteTodo = () => {
   const normalTasks = useMemo(() => {
     return todayTasks.filter(t => !t.isRoutine);
   }, [todayTasks]);
+
+  // 日記の検索マッチ判定
+  const diaryMatchesSearch = useMemo(() => {
+    if (!searchKeyword.trim()) return false;
+    const note = dailyNotes[selectedDateStr];
+    if (!note) return false;
+    return matchesSearch(note.plan || '') || matchesSearch(note.reflection || '');
+  }, [dailyNotes, selectedDateStr, searchKeyword]);
 
   const addTask = () => {
     if (newTask.name.trim()) {
@@ -239,6 +271,7 @@ const StickyNoteTodo = () => {
       }
     });
   };
+
   const exportData = () => {
     const data = {
       tasks,
@@ -278,6 +311,7 @@ const StickyNoteTodo = () => {
     
     event.target.value = '';
   };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5EAD8' }}>
       {/* ヘッダー */}
@@ -288,32 +322,40 @@ const StickyNoteTodo = () => {
               <button onClick={() => changeDate(-1)} className="p-1.5 rounded transition-all hover:bg-gray-200">
                 <ChevronLeft size={20} />
               </button>
-<button 
-  onClick={() => setShowDailyNoteModal(true)}
-  className="font-bold cursor-pointer hover:opacity-70 transition-all flex items-baseline gap-1" 
-  style={{ color: '#2D2A27' }}
-  title="カレンダーと日記を開く"
->
-  <span className="text-xl md:text-3xl">
-    {selectedDate.getMonth() + 1}/{selectedDate.getDate()}
-  </span>
-  <span className="text-sm md:text-lg">
-    ({['日', '月', '火', '水', '木', '金', '土'][selectedDate.getDay()]})
-  </span>
-</button>
+              <button 
+                onClick={() => setShowDailyNoteModal(true)}
+                className="font-bold cursor-pointer hover:opacity-70 transition-all flex items-baseline gap-1" 
+                style={{ color: '#2D2A27' }}
+                title="カレンダーと日記を開く"
+              >
+                <span className="text-xl md:text-3xl">
+                  {selectedDate.getMonth() + 1}/{selectedDate.getDate()}
+                </span>
+                <span className="text-sm md:text-lg">
+                  ({['日', '月', '火', '水', '木', '金', '土'][selectedDate.getDay()]})
+                </span>
+              </button>
               <button onClick={() => changeDate(1)} className="p-1.5 rounded transition-all hover:bg-gray-200">
                 <ChevronRight size={20} />
               </button>
             </div>
             <div className="flex items-center gap-2">
               <button 
-  onClick={() => setSelectedDate(new Date())} 
-  className="p-2.5 rounded-lg transition-all hover:opacity-80"
-  style={{ backgroundColor: '#90B6C8', color: 'white' }}
-  title="今日に戻る"
->
-  <Calendar size={22} />
-</button>
+                onClick={() => setShowSearchBar(!showSearchBar)} 
+                className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                style={{ backgroundColor: showSearchBar ? '#E6D48F' : '#90B6C8', color: 'white' }}
+                title="検索"
+              >
+                <Search size={22} />
+              </button>
+              <button 
+                onClick={() => setSelectedDate(new Date())} 
+                className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                style={{ backgroundColor: '#90B6C8', color: 'white' }}
+                title="今日に戻る"
+              >
+                <Calendar size={22} />
+              </button>
               <button 
                 onClick={exportData} 
                 className="p-2.5 rounded-lg transition-all hover:opacity-80"
@@ -337,15 +379,52 @@ const StickyNoteTodo = () => {
                 />
               </label>
               <button 
-  onClick={() => setShowAddTask(!showAddTask)} 
-  className="p-2.5 rounded-lg transition-all hover:opacity-80"
-  style={{ backgroundColor: '#90B6C8', color: 'white' }}
-  title="タスク追加"
->
-  <Plus size={22} />
-</button>
+                onClick={() => setShowAddTask(!showAddTask)} 
+                className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                style={{ backgroundColor: '#90B6C8', color: 'white' }}
+                title="タスク追加"
+              >
+                <Plus size={22} />
+              </button>
             </div>
           </div>
+
+          {/* 検索バー（トグル表示） */}
+          {showSearchBar && (
+            <div className="relative mt-2">
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2" style={{ color: '#8B8680' }} />
+              <input 
+                type="text" 
+                value={searchKeyword} 
+                onChange={(e) => setSearchKeyword(e.target.value)} 
+                placeholder="タスクや日記を検索..." 
+                className="w-full pl-10 pr-10 py-2 rounded-lg border-2 focus:outline-none text-sm"
+                style={{ 
+                  borderColor: '#E8D4BC', 
+                  backgroundColor: 'white',
+                  color: '#4A4542'
+                }}
+                autoFocus
+              />
+              {searchKeyword && (
+                <button 
+                  onClick={() => setSearchKeyword('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 transition-all"
+                  title="検索をクリア"
+                >
+                  <X size={16} style={{ color: '#8B8680' }} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 検索結果表示 */}
+          {showSearchBar && searchKeyword && (
+            <div className="mt-2 text-xs" style={{ color: '#8B8680' }}>
+              検索結果: タスク {todayTasks.length + todayCompleted.length}件
+              {diaryMatchesSearch && ' / 日記にヒット'}
+            </div>
+          )}
         </div>
       </div>
 
@@ -501,9 +580,9 @@ const StickyNoteTodo = () => {
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#FDF8F0' }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
-  <Calendar size={20} />
-  カレンダーと日記
-</h3>
+                <Calendar size={20} />
+                カレンダーと日記
+              </h3>
               <button onClick={() => setShowDailyNoteModal(false)} className="p-1 rounded transition-all hover:bg-gray-200">
                 <X size={20} />
               </button>
@@ -836,7 +915,7 @@ const StickyNoteTodo = () => {
 
             {todayTasks.length === 0 && (
               <div className="text-center py-8 text-sm" style={{ color: '#8B8680' }}>
-                タスクがありません。「タスク追加」ボタンから追加しましょう！
+                {searchKeyword ? '検索結果がありません' : 'タスクがありません。「タスク追加」ボタンから追加しましょう！'}
               </div>
             )}
           </div>
@@ -908,15 +987,27 @@ const StickyNoteTodo = () => {
             </div>
             {todayCompleted.length === 0 && (
               <div className="text-center py-8 text-sm" style={{ color: '#8B8680' }}>
-                完了したタスクはありません
+                {searchKeyword ? '検索結果がありません' : '完了したタスクはありません'}
               </div>
             )}
           </div>
 
           {/* 今日の日記エリア */}
-          <div className="p-4 rounded-lg border-2" style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}>
+          <div 
+            className="p-4 rounded-lg border-2" 
+            style={{ 
+              backgroundColor: '#FDF8F0', 
+              borderColor: diaryMatchesSearch ? '#90B6C8' : '#E8D4BC',
+              borderWidth: diaryMatchesSearch ? '3px' : '2px'
+            }}
+          >
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#4A4542' }}>
               📓 今日の日記
+              {diaryMatchesSearch && (
+                <span className="text-xs font-normal px-2 py-1 rounded" style={{ backgroundColor: '#90B6C8', color: 'white' }}>
+                  検索ヒット
+                </span>
+              )}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 今日の予定 */}
@@ -950,4 +1041,4 @@ const StickyNoteTodo = () => {
   );
 };
 
-export default StickyNoteTodo; 
+export default StickyNoteTodo;
