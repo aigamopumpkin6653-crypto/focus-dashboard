@@ -304,9 +304,17 @@ const StickyNoteTodo = () => {
         if (data.dailyNotes) setDailyNotes(data.dailyNotes);
         
         alert(`✅ データを復元しました！\n\nタスク: ${data.tasks?.length || 0}件\n完了済み: ${data.completedTasks?.length || 0}件\n日記: ${Object.keys(data.dailyNotes || {}).length}日分`);
+        
+        // メニューを閉じる
+        setShowMenu(false);
       } catch (error) {
         alert('❌ ファイルの読み込みに失敗しました');
+        setShowMenu(false);
       }
+    };
+    reader.onerror = () => {
+      alert('❌ ファイルの読み込みに失敗しました');
+      setShowMenu(false);
     };
     reader.readAsText(file);
     
@@ -396,14 +404,15 @@ const StickyNoteTodo = () => {
                     <label
                       className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-all cursor-pointer"
                       style={{ color: '#4A4542' }}
-                      onClick={() => setShowMenu(false)}
                     >
                       <Upload size={18} />
                       <span className="text-sm">復元</span>
                       <input 
                         type="file" 
                         accept=".json" 
-                        onChange={importData} 
+                        onChange={(e) => {
+                          importData(e);
+                        }} 
                         className="hidden"
                       />
                     </label>
