@@ -54,6 +54,7 @@ const StickyNoteTodo = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [carryOverMode, setCarryOverMode] = useState(false);
   const [selectedCarryOverTasks, setSelectedCarryOverTasks] = useState([]);
+  const [openTaskMenu, setOpenTaskMenu] = useState(null);
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -1024,6 +1025,7 @@ const StickyNoteTodo = () => {
                   {normalTasks.map(task => {
                     const isSelected = selectedCarryOverTasks.includes(task.id);
                     const isCarriedOver = task.carriedOverTo;
+                    const isMenuOpen = openTaskMenu === task.id;
                     
                     return (
                       <div
@@ -1041,7 +1043,7 @@ const StickyNoteTodo = () => {
                         onClick={() => {
                           if (carryOverMode && !isCarriedOver) {
                             toggleCarryOverSelection(task.id);
-                          } else if (!isCarriedOver) {
+                          } else if (!isCarriedOver && !isMenuOpen) {
                             completeTask(task);
                           }
                         }}
@@ -1078,37 +1080,74 @@ const StickyNoteTodo = () => {
                           )}
                         </div>
                         {!carryOverMode && !isCarriedOver && (
-                          <div className="absolute top-2 right-2 flex gap-1">
-                            {isPastDate && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); moveTaskToToday(task); }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                                title="今日に繰り越す"
+                          <div className="absolute top-2 right-2">
+                            <button
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setOpenTaskMenu(isMenuOpen ? null : task.id);
+                              }}
+                              className="p-1.5 rounded hover:bg-white hover:bg-opacity-20"
+                              title="メニュー"
+                            >
+                              <MoreVertical size={18} className="text-white" />
+                            </button>
+                            {isMenuOpen && (
+                              <div 
+                                className="absolute right-0 mt-1 w-36 rounded-lg shadow-lg overflow-hidden z-50"
+                                style={{ backgroundColor: '#FDF8F0', border: '2px solid #E8D4BC' }}
                               >
-                                <ArrowRight size={14} className="text-white" />
-                              </button>
+                                {isPastDate && (
+                                  <button
+                                    onClick={(e) => { 
+                                      e.stopPropagation(); 
+                                      moveTaskToToday(task);
+                                      setOpenTaskMenu(null);
+                                    }}
+                                    className="w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                                    style={{ color: '#4A4542' }}
+                                  >
+                                    <ArrowRight size={16} />
+                                    <span>今日へ</span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openMemoModal(task, e);
+                                    setOpenTaskMenu(null);
+                                  }}
+                                  className="w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                                  style={{ color: '#4A4542' }}
+                                >
+                                  <FileText size={16} />
+                                  <span>メモ</span>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditTask(task, e);
+                                    setOpenTaskMenu(null);
+                                  }}
+                                  className="w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                                  style={{ color: '#4A4542' }}
+                                >
+                                  <Edit2 size={16} />
+                                  <span>編集</span>
+                                </button>
+                                <button
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    deleteTask(task.id);
+                                    setOpenTaskMenu(null);
+                                  }}
+                                  className="w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                                  style={{ color: '#D37A68' }}
+                                >
+                                  <X size={16} />
+                                  <span>削除</span>
+                                </button>
+                              </div>
                             )}
-                            <button
-                              onClick={(e) => openMemoModal(task, e)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                              title="メモ"
-                            >
-                              <FileText size={14} className="text-white" />
-                            </button>
-                            <button
-                              onClick={(e) => startEditTask(task, e)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                              title="編集"
-                            >
-                              <Edit2 size={14} className="text-white" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                              title="削除"
-                            >
-                              <X size={14} className="text-white" />
-                            </button>
                           </div>
                         )}
                       </div>
