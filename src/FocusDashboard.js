@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar, Search } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar, Search, MoreVertical, Download, Upload } from 'lucide-react';
 
 const StickyNoteTodo = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -51,6 +51,7 @@ const StickyNoteTodo = () => {
   const [showDailyNoteModal, setShowDailyNoteModal] = useState(false);
   const [dailyNoteTab, setDailyNoteTab] = useState('plan');
   const [showSearchBar, setShowSearchBar] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -341,14 +342,6 @@ const StickyNoteTodo = () => {
             </div>
             <div className="flex items-center gap-2">
               <button 
-                onClick={() => setShowSearchBar(!showSearchBar)} 
-                className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                style={{ backgroundColor: showSearchBar ? '#E6D48F' : '#90B6C8', color: 'white' }}
-                title="検索"
-              >
-                <Search size={22} />
-              </button>
-              <button 
                 onClick={() => setSelectedDate(new Date())} 
                 className="p-2.5 rounded-lg transition-all hover:opacity-80"
                 style={{ backgroundColor: '#90B6C8', color: 'white' }}
@@ -357,28 +350,6 @@ const StickyNoteTodo = () => {
                 <Calendar size={22} />
               </button>
               <button 
-                onClick={exportData} 
-                className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                style={{ backgroundColor: '#A5BFA8', color: 'white' }}
-                title="バックアップ"
-              >
-                📥
-              </button>
-              
-              <label 
-                className="p-2.5 rounded-lg transition-all hover:opacity-80 cursor-pointer"
-                style={{ backgroundColor: '#D37A68', color: 'white' }}
-                title="復元"
-              >
-                📤
-                <input 
-                  type="file" 
-                  accept=".json" 
-                  onChange={importData} 
-                  className="hidden"
-                />
-              </label>
-              <button 
                 onClick={() => setShowAddTask(!showAddTask)} 
                 className="p-2.5 rounded-lg transition-all hover:opacity-80"
                 style={{ backgroundColor: '#90B6C8', color: 'white' }}
@@ -386,6 +357,59 @@ const StickyNoteTodo = () => {
               >
                 <Plus size={22} />
               </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setShowMenu(!showMenu)} 
+                  className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                  style={{ backgroundColor: showMenu ? '#E6D48F' : '#A5BFA8', color: 'white' }}
+                  title="メニュー"
+                >
+                  <MoreVertical size={22} />
+                </button>
+                {showMenu && (
+                  <div 
+                    className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
+                    style={{ backgroundColor: '#FDF8F0', border: '2px solid #E8D4BC' }}
+                  >
+                    <button
+                      onClick={() => {
+                        setShowSearchBar(!showSearchBar);
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
+                      style={{ color: '#4A4542' }}
+                    >
+                      <Search size={18} />
+                      <span className="text-sm">検索</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportData();
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
+                      style={{ color: '#4A4542' }}
+                    >
+                      <Download size={18} />
+                      <span className="text-sm">バックアップ</span>
+                    </button>
+                    <label
+                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-all cursor-pointer"
+                      style={{ color: '#4A4542' }}
+                      onClick={() => setShowMenu(false)}
+                    >
+                      <Upload size={18} />
+                      <span className="text-sm">復元</span>
+                      <input 
+                        type="file" 
+                        accept=".json" 
+                        onChange={importData} 
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
