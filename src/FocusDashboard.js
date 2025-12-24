@@ -58,6 +58,8 @@ const StickyNoteTodo = () => {
   const [openTaskMenu, setOpenTaskMenu] = useState(null);
   const [weekViewDate, setWeekViewDate] = useState(new Date());
   const [weekViewSelectedDate, setWeekViewSelectedDate] = useState(null);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -77,7 +79,55 @@ const StickyNoteTodo = () => {
     setSelectedDate(newDate);
   };
 
-  // 週間ビューで選択中の日のタスクと日記を取得
+  const selectedDateStr = useMemo(() => formatDateStr(selectedDate), [selectedDate]);
+
+  const getWeekStart = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    return new Date(d.setDate(diff));
+  };
+
+  const weekDays = useMemo(() => {
+    const start = getWeekStart(weekViewDate);
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      return date;
+    });
+  }, [weekViewDate]);
+
+  const getTaskCountForDate = (date) => {
+    const dateStr = formatDateStr(date);
+    const dayTasks = tasks.filter(t => {
+      if (t.isRoutine) {
+        const taskCreatedStr = formatDateStr(t.createdAt);
+        const isCompletedOnDate = completedTasks.some(ct => 
+          ct.id === t.id && formatDateStr(ct.completedAt) === dateStr
+        );
+        return dateStr >= taskCreatedStr && !isCompletedOnDate;
+      }
+      const taskDateStr = formatDateStr(t.createdAt);
+      const isCompletedOnDate = completedTasks.some(ct => 
+        ct.id === t.id && formatDateStr(ct.completedAt) === dateStr
+      );
+      return taskDateStr === dateStr && !isCompletedOnDate;
+    });
+    
+    const dayCompleted = completedTasks.filter(ct => {
+      const completedDateStr = formatDateStr(ct.completedAt);
+      return completedDateStr === dateStr;
+    });
+
+    return { active: dayTasks.length, completed: dayCompleted.length };
+  };
+
+  const hasNoteForDate = (date) => {
+    const dateStr = formatDateStr(date);
+    const note = dailyNotes[dateStr];
+    return note && (note.plan || note.reflection);
+  };
+
   const weekViewSelectedDateStr = useMemo(() => 
     weekViewSelectedDate ? formatDateStr(weekViewSelectedDate) : '', 
     [weekViewSelectedDate]
@@ -114,60 +164,6 @@ const StickyNoteTodo = () => {
     return dailyNotes[weekViewSelectedDateStr] || { plan: '', reflection: '' };
   }, [dailyNotes, weekViewSelectedDate, weekViewSelectedDateStr]);
 
-  const selectedDateStr = useMemo(() => formatDateStr(selectedDate), [selectedDate]);
-
-  // 週間ビュー用：その週の日曜日を取得
-  const getWeekStart = (date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day;
-    return new Date(d.setDate(diff));
-  };
-
-  // 週間ビュー用：7日分の日付を生成
-  const weekDays = useMemo(() => {
-    const start = getWeekStart(weekViewDate);
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
-      return date;
-    });
-  }, [weekViewDate]);
-
-  // 特定の日のタスク数を取得
-  const getTaskCountForDate = (date) => {
-    const dateStr = formatDateStr(date);
-    const dayTasks = tasks.filter(t => {
-      if (t.isRoutine) {
-        const taskCreatedStr = formatDateStr(t.createdAt);
-        const isCompletedOnDate = completedTasks.some(ct => 
-          ct.id === t.id && formatDateStr(ct.completedAt) === dateStr
-        );
-        return dateStr >= taskCreatedStr && !isCompletedOnDate;
-      }
-      const taskDateStr = formatDateStr(t.createdAt);
-      const isCompletedOnDate = completedTasks.some(ct => 
-        ct.id === t.id && formatDateStr(ct.completedAt) === dateStr
-      );
-      return taskDateStr === dateStr && !isCompletedOnDate;
-    });
-    
-    const dayCompleted = completedTasks.filter(ct => {
-      const completedDateStr = formatDateStr(ct.completedAt);
-      return completedDateStr === dateStr;
-    });
-
-    return { active: dayTasks.length, completed: dayCompleted.length };
-  };
-
-  // 特定の日に日記があるか
-  const hasNoteForDate = (date) => {
-    const dateStr = formatDateStr(date);
-    const note = dailyNotes[dateStr];
-    return note && (note.plan || note.reflection);
-  };
-
-  // 検索フィルター関数
   const matchesSearch = (text) => {
     if (!searchKeyword.trim()) return true;
     return text.toLowerCase().includes(searchKeyword.toLowerCase());
@@ -526,9 +522,35 @@ const StickyNoteTodo = () => {
     event.target.value = '';
   };
 
+  // スワイプ機能
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe) {
+      changeDate(1); // 次の日へ
+    }
+    if (isRightSwipe) {
+      changeDate(-1); // 前の日へ
+    }
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5EAD8' }}>
-      {/* ヘッダー */}
       <div className="sticky top-0 z-50 backdrop-blur-sm" style={{ backgroundColor: 'rgba(245, 234, 216, 0.95)', borderBottom: '1px solid #E8D4BC' }}>
         <div className="max-w-full mx-auto px-3 py-2">
           <div className="flex items-center justify-between">
@@ -608,7 +630,9 @@ const StickyNoteTodo = () => {
                     <CalendarDays size={22} />
                   </button>
                   <button 
-                    onClick={() => setShowAddTask(!showAddTask)} 
+                    onClick={() => {
+                      setShowAddTask(true);
+                    }} 
                     className="p-2.5 rounded-lg transition-all hover:opacity-80"
                     style={{ backgroundColor: '#E6D48F', color: 'white' }}
                     title="タスク追加"
@@ -619,7 +643,7 @@ const StickyNoteTodo = () => {
                     <button 
                       onClick={() => setShowMenu(!showMenu)} 
                       className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                      style={{ backgroundColor: showMenu ? '#D37A68' : '#90B6C8', color: 'white' }}
+                      style={{ backgroundColor: '#A5BFA8', color: 'white' }}
                       title="メニュー"
                     >
                       <MoreVertical size={22} />
@@ -722,7 +746,6 @@ const StickyNoteTodo = () => {
         </div>
       </div>
 
-      {/* 週間ビューモーダル */}
       {showWeekView && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowWeekView(false)}>
           <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#FDF8F0' }}>
@@ -767,14 +790,12 @@ const StickyNoteTodo = () => {
                 </button>
               </div>
 
-              {/* 横スクロール可能な週間カード */}
               <div className="overflow-x-auto mt-4 pb-2">
-                <div className="flex gap-3 min-w-max">
+                <div className="flex gap-2 min-w-max">
                   {weekDays.map((date, index) => {
                     const taskCount = getTaskCountForDate(date);
                     const hasNote = hasNoteForDate(date);
                     const isToday = formatDateStr(date) === formatDateStr(new Date());
-                    const isSelected = formatDateStr(date) === selectedDateStr;
                     const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
                     
                     return (
@@ -783,44 +804,44 @@ const StickyNoteTodo = () => {
                         onClick={() => {
                           setWeekViewSelectedDate(date);
                         }}
-                        className="flex-shrink-0 p-4 rounded-lg border-2 transition-all hover:shadow-lg"
+                        className="flex-shrink-0 p-3 rounded-lg border-2 transition-all hover:shadow-lg"
                         style={{
-                          width: '140px',
-                          backgroundColor: formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? '#D37A68' : isToday ? '#E6D48F' : '#FDF8F0',
-                          borderColor: formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? '#D37A68' : isToday ? '#E6D48F' : '#E8D4BC',
-                          color: formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : '#4A4542'
+                          width: '100px',
+                          backgroundColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? '#D37A68' : isToday ? '#E6D48F' : '#FDF8F0',
+                          borderColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? '#D37A68' : isToday ? '#E6D48F' : '#E8D4BC',
+                          color: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : '#4A4542'
                         }}
                       >
                         <div className="text-center">
                           <div className="text-xs font-medium mb-1" style={{ opacity: 0.8 }}>
                             {dayNames[date.getDay()]}
                           </div>
-                          <div className="text-2xl font-bold mb-3">
+                          <div className="text-xl font-bold mb-2">
                             {date.getDate()}
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-1">
                             {taskCount.active > 0 && (
-                              <div className="text-xs px-2 py-1 rounded" style={{ 
-                                backgroundColor: formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'rgba(255,255,255,0.3)' : '#E8D4BC',
-                                color: formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : '#6B6660'
+                              <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                                backgroundColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'rgba(255,255,255,0.3)' : '#E8D4BC',
+                                color: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : '#6B6660'
                               }}>
-                                📝 残 {taskCount.active}件
+                                📝 {taskCount.active}
                               </div>
                             )}
                             {taskCount.completed > 0 && (
-                              <div className="text-xs px-2 py-1 rounded" style={{ 
-                                backgroundColor: formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'rgba(255,255,255,0.3)' : '#B8D4A8',
-                                color: formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : '#5A7A4A'
+                              <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                                backgroundColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'rgba(255,255,255,0.3)' : '#B8D4A8',
+                                color: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : '#5A7A4A'
                               }}>
-                                ✅ 完了 {taskCount.completed}件
+                                ✅ {taskCount.completed}
                               </div>
                             )}
                             {hasNote && (
-                              <div className="text-xs px-2 py-1 rounded" style={{ 
-                                backgroundColor: formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'rgba(255,255,255,0.3)' : '#90B6C8',
-                                color: formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : 'white'
+                              <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                                backgroundColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'rgba(255,255,255,0.3)' : '#90B6C8',
+                                color: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : 'white'
                               }}>
-                                📓 日記
+                                📓
                               </div>
                             )}
                             {taskCount.active === 0 && taskCount.completed === 0 && !hasNote && (
@@ -837,23 +858,39 @@ const StickyNoteTodo = () => {
               </div>
             </div>
 
-            {/* 選択した日の詳細 */}
             {weekViewSelectedDate && (
               <div className="p-6">
-                <div className="mb-4">
-                  <h4 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#4A4542' }}>
+                <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="text-lg font-bold flex items-center gap-2" style={{ color: '#4A4542' }}>
                     <Calendar size={20} />
                     {weekViewSelectedDate.getMonth() + 1}月{weekViewSelectedDate.getDate()}日（{['日', '月', '火', '水', '木', '金', '土'][weekViewSelectedDate.getDay()]}）の詳細
                   </h4>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setSelectedDate(weekViewSelectedDate);
+                        setShowWeekView(false);
+                      }} 
+                      className="px-4 py-2 rounded-lg text-sm transition-all hover:opacity-80 whitespace-nowrap" 
+                      style={{ backgroundColor: '#D37A68', color: 'white' }}
+                    >
+                      この日に移動
+                    </button>
+                    <button 
+                      onClick={() => setShowWeekView(false)} 
+                      className="px-4 py-2 rounded-lg text-sm transition-all hover:opacity-80 whitespace-nowrap" 
+                      style={{ backgroundColor: '#B8D4A8', color: 'white' }}
+                    >
+                      閉じる
+                    </button>
+                  </div>
                 </div>
 
-                {/* タスクセクション */}
                 <div className="mb-6">
                   <h5 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#8B8680' }}>
                     📝 タスク
                   </h5>
                   <div className="grid grid-cols-2 gap-4">
-                    {/* 残タスク */}
                     <div className="p-4 rounded-lg border-2" style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}>
                       <h6 className="text-xs font-semibold mb-2" style={{ color: '#8B8680' }}>残タスク</h6>
                       {weekViewTasks.length > 0 ? (
@@ -880,7 +917,6 @@ const StickyNoteTodo = () => {
                       )}
                     </div>
 
-                    {/* 完了済み */}
                     <div className="p-4 rounded-lg border-2" style={{ backgroundColor: '#E8F4E0', borderColor: '#D4E4C8' }}>
                       <h6 className="text-xs font-semibold mb-2" style={{ color: '#8B8680' }}>完了済み</h6>
                       {weekViewCompleted.length > 0 ? (
@@ -909,7 +945,6 @@ const StickyNoteTodo = () => {
                   </div>
                 </div>
 
-                {/* 日記セクション */}
                 <div>
                   <h5 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#8B8680' }}>
                     📓 日記
@@ -941,33 +976,12 @@ const StickyNoteTodo = () => {
                     </div>
                   </div>
                 </div>
-
-                <div className="mt-6 flex justify-end gap-2">
-                  <button 
-                    onClick={() => {
-                      setSelectedDate(weekViewSelectedDate);
-                      setShowWeekView(false);
-                    }} 
-                    className="px-6 py-2 rounded-lg text-sm transition-all hover:opacity-80" 
-                    style={{ backgroundColor: '#D37A68', color: 'white' }}
-                  >
-                    この日に移動
-                  </button>
-                  <button 
-                    onClick={() => setShowWeekView(false)} 
-                    className="px-6 py-2 rounded-lg text-sm transition-all hover:opacity-80" 
-                    style={{ backgroundColor: '#B8D4A8', color: 'white' }}
-                  >
-                    閉じる
-                  </button>
-                </div>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* タスク追加フォーム */}
       {showAddTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAddTask(false)}>
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#FDF8F0' }}>
@@ -1043,246 +1057,13 @@ const StickyNoteTodo = () => {
           </div>
         </div>
       )}
-
-      {/* タスク編集フォーム */}
-      {editingTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={cancelEdit}>
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#FDF8F0' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: '#4A4542' }}>タスクを編集</h3>
-              <button onClick={cancelEdit} className="p-1 rounded transition-all hover:bg-gray-200">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <input 
-                type="text" 
-                value={editFormData.name} 
-                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} 
-                onKeyPress={(e) => e.key === 'Enter' && saveEditTask()} 
-                placeholder="タスク名..." 
-                className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none text-sm" 
-                style={{ borderColor: '#E8D4BC' }}
-                autoFocus
-              />
-              <select 
-                value={editFormData.category} 
-                onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })} 
-                className="w-full px-3 py-2 border rounded-lg text-sm" 
-                style={{ borderColor: '#E8D4BC' }}
-              >
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: '#6B6660' }}>
-                <input 
-                  type="checkbox" 
-                  checked={editFormData.isRoutine} 
-                  onChange={(e) => setEditFormData({ ...editFormData, isRoutine: e.target.checked })} 
-                />
-                ルーティーンタスク
-              </label>
-              {editFormData.isRoutine && (
-                <select 
-                  value={editFormData.routineTime} 
-                  onChange={(e) => setEditFormData({ ...editFormData, routineTime: e.target.value })} 
-                  className="w-full px-3 py-2 border rounded-lg text-sm" 
-                  style={{ borderColor: '#E8D4BC' }}
-                >
-                  <option value="morning">朝</option>
-                  <option value="evening">夜</option>
-                </select>
-              )}
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button 
-                onClick={saveEditTask} 
-                className="flex-1 px-4 py-2 rounded-lg text-white text-sm transition-all hover:opacity-80" 
-                style={{ backgroundColor: '#B8D4A8' }}
-              >
-                保存
-              </button>
-              <button 
-                onClick={cancelEdit} 
-                className="px-4 py-2 rounded-lg text-sm transition-all hover:opacity-70" 
-                style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 日記モーダル */}
-      {showDailyNoteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowDailyNoteModal(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#FDF8F0' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
-                <Calendar size={20} />
-                カレンダーと日記
-              </h3>
-              <button onClick={() => setShowDailyNoteModal(false)} className="p-1 rounded transition-all hover:bg-gray-200">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="mb-4 p-4 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
-              <div className="text-center mb-3">
-                <p className="text-base font-semibold" style={{ color: '#4A4542' }}>
-                  {selectedDate.getFullYear()}年 {selectedDate.getMonth() + 1}月
-                </p>
-              </div>
-              <div className="grid grid-cols-7 gap-2">
-                {['日', '月', '火', '水', '木', '金', '土'].map(day => (
-                  <div key={day} className="text-center text-sm font-medium py-1" style={{ color: '#8B8680' }}>{day}</div>
-                ))}
-                {(() => {
-                  const year = selectedDate.getFullYear();
-                  const month = selectedDate.getMonth();
-                  const firstDay = new Date(year, month, 1).getDay();
-                  const daysInMonth = new Date(year, month + 1, 0).getDate();
-                  const today = new Date();
-                  const days = [];
-                  for (let i = 0; i < firstDay; i++) {
-                    days.push(<div key={`empty-${i}`} className="h-10"></div>);
-                  }
-                  for (let day = 1; day <= daysInMonth; day++) {
-                    const date = new Date(year, month, day);
-                    const dateStr = formatDateStr(date);
-                    const isSelected = date.toDateString() === selectedDate.toDateString();
-                    const isTodayDate = date.toDateString() === today.toDateString();
-                    const hasNote = dailyNotes[dateStr] && (dailyNotes[dateStr].plan || dailyNotes[dateStr].reflection);
-                    days.push(
-                      <button 
-                        key={day} 
-                        onClick={() => setSelectedDate(date)}
-                        className="h-10 rounded flex items-center justify-center transition-all hover:opacity-80 relative"
-                        style={{
-                          backgroundColor: isSelected ? '#D37A68' : isTodayDate ? '#E6D48F' : 'transparent',
-                          color: isSelected ? 'white' : isTodayDate ? '#8B7A4A' : '#4A4542',
-                          fontWeight: (isSelected || isTodayDate) ? 'bold' : 'normal'
-                        }}
-                      >
-                        {day}
-                        {hasNote && !isSelected && (
-                          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#90B6C8' }}></span>
-                        )}
-                      </button>
-                    );
-                  }
-                  return days;
-                })()}
-              </div>
-            </div>
-            
-            <div className="flex gap-2 mb-4">
-              <button 
-                onClick={() => setDailyNoteTab('plan')}
-                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                style={{ 
-                  backgroundColor: dailyNoteTab === 'plan' ? '#E6D48F' : '#E8D4BC',
-                  color: dailyNoteTab === 'plan' ? '#6B6660' : '#8B8680'
-                }}
-              >
-                📝 今日の予定
-              </button>
-              <button 
-                onClick={() => setDailyNoteTab('reflection')}
-                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                style={{ 
-                  backgroundColor: dailyNoteTab === 'reflection' ? '#E6D48F' : '#E8D4BC',
-                  color: dailyNoteTab === 'reflection' ? '#6B6660' : '#8B8680'
-                }}
-              >
-                💭 振り返り
-              </button>
-            </div>
-
-            {dailyNoteTab === 'plan' && (
-              <div>
-                <p className="text-sm mb-2" style={{ color: '#8B8680' }}>今日やること、目標、予定など...</p>
-                <textarea 
-                  value={currentDailyNote.plan} 
-                  onChange={(e) => saveDailyNote('plan', e.target.value)} 
-                  placeholder="例：午前中に企画書を完成させる、ジムに行く" 
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none resize-none text-sm" 
-                  style={{ borderColor: '#E8D4BC', backgroundColor: '#F5EAD8' }}
-                  rows="12"
-                />
-              </div>
-            )}
-
-            {dailyNoteTab === 'reflection' && (
-              <div>
-                <p className="text-sm mb-2" style={{ color: '#8B8680' }}>今日の振り返り、気づき、感謝など...</p>
-                <textarea 
-                  value={currentDailyNote.reflection} 
-                  onChange={(e) => saveDailyNote('reflection', e.target.value)} 
-                  placeholder="例：集中力が続いてよかった、明日は早めに起きよう" 
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none resize-none text-sm" 
-                  style={{ borderColor: '#E8D4BC', backgroundColor: '#F5EAD8' }}
-                  rows="12"
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end mt-4">
-              <button 
-                onClick={() => setShowDailyNoteModal(false)} 
-                className="px-6 py-2 rounded-lg text-sm transition-all hover:opacity-80" 
-                style={{ backgroundColor: '#B8D4A8', color: 'white' }}
-              >
-                閉じる
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* メモモーダル */}
-      {showMemoModal && memoTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closeMemoModal}>
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#FDF8F0' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: '#4A4542' }}>📝 タスクメモ</h3>
-              <button onClick={closeMemoModal} className="p-1 rounded transition-all hover:bg-gray-200">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="mb-3 p-2 rounded" style={{ backgroundColor: dustyColors[memoTask.category] }}>
-              <div className="text-white font-semibold text-sm">{memoTask.name}</div>
-            </div>
-            <textarea 
-              value={memoContent} 
-              onChange={(e) => setMemoContent(e.target.value)} 
-              placeholder="メモを入力..." 
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none resize-none text-sm" 
-              style={{ borderColor: '#E8D4BC', backgroundColor: '#F5EAD8' }}
-              rows="8"
-              autoFocus
-            />
-            <div className="flex gap-2 mt-4">
-              <button 
-                onClick={saveMemo} 
-                className="flex-1 px-4 py-2 rounded-lg text-white text-sm transition-all hover:opacity-80" 
-                style={{ backgroundColor: '#B8D4A8' }}
-              >
-                保存
-              </button>
-              <button 
-                onClick={closeMemoModal} 
-                className="px-4 py-2 rounded-lg text-sm transition-all hover:opacity-70" 
-                style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="px-3 py-4">
+      
+      <div 
+        className="px-3 py-4" 
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         <div className="max-w-6xl mx-auto">
           {/* 残タスクエリア */}
           <div 
@@ -1318,29 +1099,6 @@ const StickyNoteTodo = () => {
                           <FileText size={12} className="text-white opacity-70" title="メモあり" />
                         )}
                       </div>
-                      <div className="absolute top-2 right-2 flex gap-1">
-                        <button
-                          onClick={(e) => openMemoModal(task, e)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                          title="メモ"
-                        >
-                          <FileText size={14} className="text-white" />
-                        </button>
-                        <button
-                          onClick={(e) => startEditTask(task, e)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                          title="編集"
-                        >
-                          <Edit2 size={14} className="text-white" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                          title="削除"
-                        >
-                          <X size={14} className="text-white" />
-                        </button>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -1351,54 +1109,23 @@ const StickyNoteTodo = () => {
               <div className="mb-4">
                 <div className="flex flex-wrap gap-3">
                   {normalTasks.map(task => {
-                    const isSelected = selectedCarryOverTasks.includes(task.id);
-                    const isCarriedOver = task.carriedOverTo;
-                    const isMenuOpen = openTaskMenu === task.id;
-                    
                     return (
                       <div
                         key={task.id}
-                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
+                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative cursor-pointer"
                         style={{ 
-                          backgroundColor: isCarriedOver ? '#C8C8C8' : isSelected ? '#B8D4A8' : dustyColors[task.category],
+                          backgroundColor: dustyColors[task.category],
                           minWidth: '140px',
-                          maxWidth: '160px',
-                          cursor: carryOverMode && !isCarriedOver ? 'pointer' : isCarriedOver ? 'not-allowed' : 'pointer',
-                          opacity: isCarriedOver ? 0.6 : 1,
-                          border: isSelected ? '3px solid #8AB88A' : 'none',
-                          transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                          maxWidth: '160px'
                         }}
-                        onClick={() => {
-                          if (carryOverMode && !isCarriedOver) {
-                            toggleCarryOverSelection(task.id);
-                          } else if (!isCarriedOver && !isMenuOpen) {
-                            completeTask(task);
-                          }
-                        }}
+                        onClick={() => completeTask(task)}
                       >
-                        {carryOverMode && !isCarriedOver && (
-                          <div 
-                            className="absolute top-2 right-2 w-6 h-6 rounded-full border-3 flex items-center justify-center shadow-lg" 
-                            style={{ 
-                              backgroundColor: isSelected ? '#8AB88A' : 'rgba(255, 255, 255, 0.3)',
-                              borderColor: 'white',
-                              borderWidth: '2px'
-                            }}
-                          >
-                            {isSelected && <Check size={18} className="text-white" strokeWidth={3} />}
-                          </div>
-                        )}
-                        <div className="text-white font-medium text-sm mb-1" style={{ fontWeight: isSelected ? 'bold' : 'normal' }}>
+                        <div className="text-white font-medium text-sm mb-1">
                           {task.name}
                         </div>
                         {task.carriedOverFrom && (
                           <div className="text-white text-xs mb-1" style={{ opacity: 0.9 }}>
                             🔄 {task.carriedOverFrom}から
-                          </div>
-                        )}
-                        {isCarriedOver && (
-                          <div className="text-white text-xs mb-1" style={{ opacity: 0.9 }}>
-                            ✅ {task.carriedOverTo}に繰り越し済み
                           </div>
                         )}
                         <div className="text-white text-xs opacity-80 flex items-center gap-2">
@@ -1407,77 +1134,6 @@ const StickyNoteTodo = () => {
                             <FileText size={12} className="text-white opacity-70" title="メモあり" />
                           )}
                         </div>
-                        {!carryOverMode && !isCarriedOver && (
-                          <div className="absolute top-2 right-2">
-                            <button
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
-                                setOpenTaskMenu(isMenuOpen ? null : task.id);
-                              }}
-                              className="p-1.5 rounded hover:bg-white hover:bg-opacity-20"
-                              title="メニュー"
-                            >
-                              <MoreVertical size={18} className="text-white" />
-                            </button>
-                            {isMenuOpen && (
-                              <div 
-                                className="absolute right-0 mt-1 w-36 rounded-lg shadow-lg overflow-hidden z-50"
-                                style={{ backgroundColor: '#FDF8F0', border: '2px solid #E8D4BC' }}
-                              >
-                                {isPastDate && (
-                                  <button
-                                    onClick={(e) => { 
-                                      e.stopPropagation(); 
-                                      moveTaskToToday(task);
-                                      setOpenTaskMenu(null);
-                                    }}
-                                    className="w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
-                                    style={{ color: '#4A4542' }}
-                                  >
-                                    <ArrowRight size={16} />
-                                    <span>今日へ</span>
-                                  </button>
-                                )}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openMemoModal(task, e);
-                                    setOpenTaskMenu(null);
-                                  }}
-                                  className="w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
-                                  style={{ color: '#4A4542' }}
-                                >
-                                  <FileText size={16} />
-                                  <span>メモ</span>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startEditTask(task, e);
-                                    setOpenTaskMenu(null);
-                                  }}
-                                  className="w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
-                                  style={{ color: '#4A4542' }}
-                                >
-                                  <Edit2 size={16} />
-                                  <span>編集</span>
-                                </button>
-                                <button
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    deleteTask(task.id);
-                                    setOpenTaskMenu(null);
-                                  }}
-                                  className="w-full px-3 py-2.5 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
-                                  style={{ color: '#D37A68' }}
-                                >
-                                  <X size={16} />
-                                  <span>削除</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                     );
                   })}
@@ -1508,29 +1164,6 @@ const StickyNoteTodo = () => {
                           <FileText size={12} className="text-white opacity-70" title="メモあり" />
                         )}
                       </div>
-                      <div className="absolute top-2 right-2 flex gap-1">
-                        <button
-                          onClick={(e) => openMemoModal(task, e)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                          title="メモ"
-                        >
-                          <FileText size={14} className="text-white" />
-                        </button>
-                        <button
-                          onClick={(e) => startEditTask(task, e)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                          title="編集"
-                        >
-                          <Edit2 size={14} className="text-white" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                          title="削除"
-                        >
-                          <X size={14} className="text-white" />
-                        </button>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -1558,14 +1191,12 @@ const StickyNoteTodo = () => {
               {todayCompleted.map((task, index) => (
                 <div
                   key={`${task.id}-${index}`}
-                  className="p-4 rounded-lg shadow-sm cursor-move transition-all hover:shadow-md group relative opacity-70"
+                  className="p-4 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md group relative opacity-70"
                   style={{ 
                     backgroundColor: dustyColors[task.category],
                     minWidth: '140px',
                     maxWidth: '160px'
                   }}
-                  draggable
-                  onDragStart={() => handleDragStart(task, true)}
                   onClick={() => uncompleteTask(task)}
                 >
                   <div className="text-white font-medium text-sm mb-1 line-through">{task.name}</div>
@@ -1589,22 +1220,6 @@ const StickyNoteTodo = () => {
                   <div className="text-white text-xs opacity-60 mt-1">
                     <Clock size={10} className="inline mr-1" />
                     {new Date(task.completedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <button
-                      onClick={(e) => openMemoModal(task, e)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                      title="メモ"
-                    >
-                      <FileText size={14} className="text-white" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteCompletedTask(task); }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white hover:bg-opacity-20"
-                      title="削除"
-                    >
-                      <X size={14} className="text-white" />
-                    </button>
                   </div>
                 </div>
               ))}
