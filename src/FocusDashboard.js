@@ -563,11 +563,11 @@ const StickyNoteTodo = () => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5EAD8' }}>
       <div className="sticky top-0 z-50 backdrop-blur-sm" style={{ backgroundColor: 'rgba(245, 234, 216, 0.95)', borderBottom: '1px solid #E8D4BC' }}>
-        <div className="max-w-full mx-auto px-3 py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button onClick={() => changeDate(-1)} className="p-1.5 rounded transition-all hover:bg-gray-200">
-                <ChevronLeft size={20} />
+        <div className="max-w-full mx-auto px-2 py-2">
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center gap-1 flex-shrink min-w-0">
+              <button onClick={() => changeDate(-1)} className="p-1.5 rounded transition-all hover:bg-gray-200 flex-shrink-0">
+                <ChevronLeft size={18} />
               </button>
               <button 
                 onClick={() => {
@@ -575,25 +575,25 @@ const StickyNoteTodo = () => {
                   setWeekViewDate(selectedDate);
                   setWeekViewSelectedDate(selectedDate);
                 }}
-                className="font-bold cursor-pointer hover:opacity-70 transition-all flex items-baseline gap-1 px-3 py-1 rounded-lg" 
+                className="font-bold cursor-pointer hover:opacity-70 transition-all flex items-baseline gap-1 px-2 py-1 rounded-lg min-w-0" 
                 style={{ 
                   color: formatDateStr(selectedDate) === formatDateStr(new Date()) ? 'white' : '#2D2A27',
                   backgroundColor: formatDateStr(selectedDate) === formatDateStr(new Date()) ? '#C9A882' : 'transparent'
                 }}
                 title="週間ビューを開く"
               >
-                <span className="text-xl md:text-3xl">
+                <span className="text-lg md:text-3xl whitespace-nowrap">
                   {selectedDate.getMonth() + 1}/{selectedDate.getDate()}
                 </span>
-                <span className="text-sm md:text-lg">
+                <span className="text-xs md:text-lg whitespace-nowrap">
                   ({['日', '月', '火', '水', '木', '金', '土'][selectedDate.getDay()]})
                 </span>
               </button>
-              <button onClick={() => changeDate(1)} className="p-1.5 rounded transition-all hover:bg-gray-200">
-                <ChevronRight size={20} />
+              <button onClick={() => changeDate(1)} className="p-1.5 rounded transition-all hover:bg-gray-200 flex-shrink-0">
+                <ChevronRight size={18} />
               </button>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {carryOverMode ? (
                 <>
                   <button 
@@ -601,14 +601,14 @@ const StickyNoteTodo = () => {
                       setCarryOverMode(false);
                       setSelectedCarryOverTasks([]);
                     }} 
-                    className="px-3 py-2 rounded-lg transition-all hover:opacity-80 text-sm"
+                    className="px-2 py-1.5 rounded-lg transition-all hover:opacity-80 text-xs"
                     style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
                   >
                     キャンセル
                   </button>
                   <button 
                     onClick={executeCarryOver} 
-                    className="px-3 py-2 rounded-lg transition-all hover:opacity-80 text-sm font-medium"
+                    className="px-2 py-1.5 rounded-lg transition-all hover:opacity-80 text-xs font-medium"
                     style={{ backgroundColor: '#B8D4A8', color: 'white' }}
                     disabled={selectedCarryOverTasks.length === 0}
                   >
@@ -619,40 +619,40 @@ const StickyNoteTodo = () => {
                 <>
                   <button 
                     onClick={() => setSelectedDate(new Date())} 
-                    className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                    className="p-2 rounded-lg transition-all hover:opacity-80"
                     style={{ backgroundColor: '#90B6C8', color: 'white' }}
                     title="今日に戻る"
                   >
-                    <Calendar size={22} />
+                    <Calendar size={20} />
                   </button>
                   {isPastDate && (
                     <button 
                       onClick={() => setCarryOverMode(true)} 
-                      className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                      className="p-2 rounded-lg transition-all hover:opacity-80"
                       style={{ backgroundColor: '#A5BFA8', color: 'white' }}
                       title="繰り越しモード"
                     >
-                      <RefreshCw size={22} />
+                      <RefreshCw size={20} />
                     </button>
                   )}
                   <button 
                     onClick={() => {
                       setShowAddTask(true);
                     }} 
-                    className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                    className="p-2 rounded-lg transition-all hover:opacity-80"
                     style={{ backgroundColor: '#E6D48F', color: 'white' }}
                     title="タスク追加"
                   >
-                    <Plus size={22} />
+                    <Plus size={20} />
                   </button>
                   <div className="relative">
                     <button 
                       onClick={() => setShowMenu(!showMenu)} 
-                      className="p-2.5 rounded-lg transition-all hover:opacity-80"
+                      className="p-2 rounded-lg transition-all hover:opacity-80"
                       style={{ backgroundColor: '#D37A68', color: 'white' }}
                       title="メニュー"
                     >
-                      <MoreVertical size={22} />
+                      <MoreVertical size={20} />
                     </button>
                     {showMenu && (
                       <div 
