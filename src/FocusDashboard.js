@@ -617,14 +617,16 @@ const StickyNoteTodo = () => {
                 </>
               ) : (
                 <>
-                  <button 
-                    onClick={() => setSelectedDate(new Date())} 
-                    className="p-2 rounded-lg transition-all hover:opacity-80"
-                    style={{ backgroundColor: '#90B6C8', color: 'white' }}
-                    title="今日に戻る"
-                  >
-                    <Calendar size={20} />
-                  </button>
+                  {formatDateStr(selectedDate) !== formatDateStr(new Date()) && (
+                    <button 
+                      onClick={() => setSelectedDate(new Date())} 
+                      className="p-2 rounded-lg transition-all hover:opacity-80"
+                      style={{ backgroundColor: '#90B6C8', color: 'white' }}
+                      title="今日に戻る"
+                    >
+                      <Calendar size={20} />
+                    </button>
+                  )}
                   {isPastDate && (
                     <button 
                       onClick={() => setCarryOverMode(true)} 
@@ -754,7 +756,7 @@ const StickyNoteTodo = () => {
 
       {showDailyNoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowDailyNoteModal(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#FDF8F0' }}>
+          <div className="px-3 py-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
                 <Calendar size={20} />
@@ -779,10 +781,10 @@ const StickyNoteTodo = () => {
                   className="p-2 rounded-lg transition-all hover:opacity-80"
                   style={{ backgroundColor: '#E8D4BC' }}
                 >
-                  <ChevronLeft size={20} />
+                  <ChevronLeft size={18} />
                 </button>
                 <div className="text-center">
-                  <p className="text-base font-semibold" style={{ color: '#4A4542' }}>
+                  <p className="text-sm font-semibold" style={{ color: '#4A4542' }}>
                     {weekDays[0].getFullYear()}年 {weekDays[0].getMonth() + 1}月{weekDays[0].getDate()}日 〜 {weekDays[6].getMonth() + 1}月{weekDays[6].getDate()}日
                   </p>
                 </div>
@@ -795,12 +797,12 @@ const StickyNoteTodo = () => {
                   className="p-2 rounded-lg transition-all hover:opacity-80"
                   style={{ backgroundColor: '#E8D4BC' }}
                 >
-                  <ChevronRight size={20} />
+                  <ChevronRight size={18} />
                 </button>
               </div>
               
               <div className="overflow-x-auto pb-2">
-                <div className="flex gap-2 min-w-max">
+                <div className="flex gap-1.5 min-w-max">
                   {weekDays.map((date, index) => {
                     const taskCount = getTaskCountForDate(date);
                     const hasNote = hasNoteForDate(date);
@@ -821,40 +823,40 @@ const StickyNoteTodo = () => {
                             setWeekViewSelectedDate(date);
                           }
                         }}
-                        className="flex-shrink-0 p-3 rounded-lg border-2 transition-all hover:shadow-lg"
+                        className="flex-shrink-0 p-2 rounded-lg border-2 transition-all hover:shadow-lg"
                         style={{
-                          width: '100px',
+                          width: '75px',
                           backgroundColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : '#FDF8F0',
                           borderColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : '#E8D4BC',
                           color: isSelected ? 'white' : '#4A4542'
                         }}
                       >
                         <div className="text-center">
-                          <div className="text-xs font-medium mb-1" style={{ opacity: 0.8 }}>
+                          <div className="text-xs font-medium mb-0.5" style={{ opacity: 0.8 }}>
                             {dayNames[date.getDay()]}
                           </div>
-                          <div className="text-xl font-bold mb-2">
+                          <div className="text-lg font-bold mb-1">
                             {date.getDate()}
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-0.5">
                             {taskCount.active > 0 && (
-                              <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                              <div className="text-xs px-1 py-0.5 rounded" style={{ 
                                 backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#E8D4BC',
                                 color: isSelected ? 'white' : '#6B6660'
                               }}>
-                                📝 {taskCount.active}
+                                📝{taskCount.active}
                               </div>
                             )}
                             {taskCount.completed > 0 && (
-                              <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                              <div className="text-xs px-1 py-0.5 rounded" style={{ 
                                 backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#B8D4A8',
                                 color: isSelected ? 'white' : '#5A7A4A'
                               }}>
-                                ✅ {taskCount.completed}
+                                ✅{taskCount.completed}
                               </div>
                             )}
                             {hasNote && (
-                              <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                              <div className="text-xs px-1 py-0.5 rounded" style={{ 
                                 backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#90B6C8',
                                 color: isSelected ? 'white' : 'white'
                               }}>
@@ -876,10 +878,10 @@ const StickyNoteTodo = () => {
             </div>
 
             {weekViewSelectedDate && (
-              <div>
-                <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
-                  <h4 className="text-base font-bold flex items-center gap-2" style={{ color: '#4A4542' }}>
-                    <Calendar size={18} />
+              <div className="px-3 pb-3">
+                <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="text-sm font-bold flex items-center gap-2" style={{ color: '#4A4542' }}>
+                    <Calendar size={16} />
                     {weekViewSelectedDate.getMonth() + 1}月{weekViewSelectedDate.getDate()}日（{['日', '月', '火', '水', '木', '金', '土'][weekViewSelectedDate.getDay()]}）
                   </h4>
                   <div className="flex gap-2">
@@ -889,7 +891,7 @@ const StickyNoteTodo = () => {
                         setShowDailyNoteModal(false);
                         setWeekViewSelectedDate(null);
                       }} 
-                      className="px-3 py-1.5 rounded-lg text-xs transition-all hover:opacity-80 whitespace-nowrap" 
+                      className="px-2 py-1 rounded-lg text-xs transition-all hover:opacity-80 whitespace-nowrap" 
                       style={{ backgroundColor: '#D37A68', color: 'white' }}
                     >
                       この日に移動
@@ -899,7 +901,7 @@ const StickyNoteTodo = () => {
                         setShowDailyNoteModal(false);
                         setWeekViewSelectedDate(null);
                       }} 
-                      className="px-3 py-1.5 rounded-lg text-xs transition-all hover:opacity-80 whitespace-nowrap" 
+                      className="px-2 py-1 rounded-lg text-xs transition-all hover:opacity-80 whitespace-nowrap" 
                       style={{ backgroundColor: '#B8D4A8', color: 'white' }}
                     >
                       閉じる
@@ -907,19 +909,19 @@ const StickyNoteTodo = () => {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <h5 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#8B8680' }}>
+                <div className="mb-3">
+                  <h5 className="text-xs font-semibold mb-2 flex items-center gap-2" style={{ color: '#8B8680' }}>
                     📝 タスク
                   </h5>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}>
-                      <h6 className="text-xs font-semibold mb-2" style={{ color: '#8B8680' }}>残タスク</h6>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-lg border-2" style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}>
+                      <h6 className="text-xs font-semibold mb-1" style={{ color: '#8B8680' }}>残タスク</h6>
                       {weekViewTasks.length > 0 ? (
                         <div className="space-y-1">
                           {weekViewTasks.slice(0, 3).map(task => (
                             <div 
                               key={task.id}
-                              className="text-xs p-1.5 rounded"
+                              className="text-xs p-1 rounded"
                               style={{ backgroundColor: dustyColors[task.category], color: 'white' }}
                             >
                               {task.name}
@@ -932,20 +934,20 @@ const StickyNoteTodo = () => {
                           )}
                         </div>
                       ) : (
-                        <div className="text-xs text-center py-3" style={{ color: '#8B8680' }}>
+                        <div className="text-xs text-center py-2" style={{ color: '#8B8680' }}>
                           残タスクなし
                         </div>
                       )}
                     </div>
 
-                    <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#E8F4E0', borderColor: '#D4E4C8' }}>
-                      <h6 className="text-xs font-semibold mb-2" style={{ color: '#8B8680' }}>完了済み</h6>
+                    <div className="p-2 rounded-lg border-2" style={{ backgroundColor: '#E8F4E0', borderColor: '#D4E4C8' }}>
+                      <h6 className="text-xs font-semibold mb-1" style={{ color: '#8B8680' }}>完了済み</h6>
                       {weekViewCompleted.length > 0 ? (
                         <div className="space-y-1">
                           {weekViewCompleted.slice(0, 3).map((task, index) => (
                             <div 
                               key={`${task.id}-${index}`}
-                              className="text-xs p-1.5 rounded line-through opacity-70"
+                              className="text-xs p-1 rounded line-through opacity-70"
                               style={{ backgroundColor: dustyColors[task.category], color: 'white' }}
                             >
                               {task.name}
@@ -958,7 +960,7 @@ const StickyNoteTodo = () => {
                           )}
                         </div>
                       ) : (
-                        <div className="text-xs text-center py-3" style={{ color: '#8B8680' }}>
+                        <div className="text-xs text-center py-2" style={{ color: '#8B8680' }}>
                           完了済みタスクなし
                         </div>
                       )}
@@ -967,30 +969,30 @@ const StickyNoteTodo = () => {
                 </div>
 
                 <div>
-                  <h5 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#8B8680' }}>
+                  <h5 className="text-xs font-semibold mb-2 flex items-center gap-2" style={{ color: '#8B8680' }}>
                     📓 日記
                   </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
-                      <h6 className="text-xs font-semibold mb-2" style={{ color: '#8B8680' }}>📝 今日の予定</h6>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="p-2 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
+                      <h6 className="text-xs font-semibold mb-1" style={{ color: '#8B8680' }}>📝 今日の予定</h6>
                       {weekViewDailyNote.plan ? (
-                        <div className="text-xs whitespace-pre-wrap max-h-24 overflow-y-auto" style={{ color: '#6B6660' }}>
+                        <div className="text-xs whitespace-pre-wrap max-h-20 overflow-y-auto" style={{ color: '#6B6660' }}>
                           {weekViewDailyNote.plan}
                         </div>
                       ) : (
-                        <div className="text-xs text-center py-3" style={{ color: '#8B8680' }}>
+                        <div className="text-xs text-center py-2" style={{ color: '#8B8680' }}>
                           予定なし
                         </div>
                       )}
                     </div>
-                    <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
-                      <h6 className="text-xs font-semibold mb-2" style={{ color: '#8B8680' }}>💭 振り返り</h6>
+                    <div className="p-2 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
+                      <h6 className="text-xs font-semibold mb-1" style={{ color: '#8B8680' }}>💭 振り返り</h6>
                       {weekViewDailyNote.reflection ? (
-                        <div className="text-xs whitespace-pre-wrap max-h-24 overflow-y-auto" style={{ color: '#6B6660' }}>
+                        <div className="text-xs whitespace-pre-wrap max-h-20 overflow-y-auto" style={{ color: '#6B6660' }}>
                           {weekViewDailyNote.reflection}
                         </div>
                       ) : (
-                        <div className="text-xs text-center py-3" style={{ color: '#8B8680' }}>
+                        <div className="text-xs text-center py-2" style={{ color: '#8B8680' }}>
                           振り返りなし
                         </div>
                       )}
