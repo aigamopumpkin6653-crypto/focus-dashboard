@@ -570,9 +570,16 @@ const StickyNoteTodo = () => {
                 <ChevronLeft size={20} />
               </button>
               <button 
-                onClick={() => setShowDailyNoteModal(true)}
-                className="font-bold cursor-pointer hover:opacity-70 transition-all flex items-baseline gap-1" 
-                style={{ color: '#2D2A27' }}
+                onClick={() => {
+                  setShowDailyNoteModal(true);
+                  setWeekViewDate(selectedDate);
+                  setWeekViewSelectedDate(selectedDate);
+                }}
+                className="font-bold cursor-pointer hover:opacity-70 transition-all flex items-baseline gap-1 px-3 py-1 rounded-lg" 
+                style={{ 
+                  color: formatDateStr(selectedDate) === formatDateStr(new Date()) ? 'white' : '#2D2A27',
+                  backgroundColor: formatDateStr(selectedDate) === formatDateStr(new Date()) ? '#C9A882' : 'transparent'
+                }}
                 title="週間ビューを開く"
               >
                 <span className="text-xl md:text-3xl">
@@ -613,7 +620,7 @@ const StickyNoteTodo = () => {
                   <button 
                     onClick={() => setSelectedDate(new Date())} 
                     className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                    style={{ backgroundColor: '#D37A68', color: 'white' }}
+                    style={{ backgroundColor: '#90B6C8', color: 'white' }}
                     title="今日に戻る"
                   >
                     <Calendar size={22} />
@@ -642,7 +649,7 @@ const StickyNoteTodo = () => {
                     <button 
                       onClick={() => setShowMenu(!showMenu)} 
                       className="p-2.5 rounded-lg transition-all hover:opacity-80"
-                      style={{ backgroundColor: '#A5BFA8', color: 'white' }}
+                      style={{ backgroundColor: '#D37A68', color: 'white' }}
                       title="メニュー"
                     >
                       <MoreVertical size={22} />
@@ -753,7 +760,10 @@ const StickyNoteTodo = () => {
                 <Calendar size={20} />
                 週間ビュー
               </h3>
-              <button onClick={() => setShowDailyNoteModal(false)} className="p-1 rounded transition-all hover:bg-gray-200">
+              <button onClick={() => {
+                setShowDailyNoteModal(false);
+                setWeekViewSelectedDate(null);
+              }} className="p-1 rounded transition-all hover:bg-gray-200">
                 <X size={20} />
               </button>
             </div>
@@ -796,19 +806,27 @@ const StickyNoteTodo = () => {
                     const hasNote = hasNoteForDate(date);
                     const isToday = formatDateStr(date) === formatDateStr(new Date());
                     const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                    const isSelected = weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate);
                     
                     return (
                       <button
                         key={index}
                         onClick={() => {
-                          setWeekViewSelectedDate(date);
+                          if (!weekViewSelectedDate) {
+                            setWeekViewSelectedDate(selectedDate);
+                            setTimeout(() => {
+                              setWeekViewSelectedDate(date);
+                            }, 0);
+                          } else {
+                            setWeekViewSelectedDate(date);
+                          }
                         }}
                         className="flex-shrink-0 p-3 rounded-lg border-2 transition-all hover:shadow-lg"
                         style={{
                           width: '100px',
-                          backgroundColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? '#D37A68' : isToday ? '#E6D48F' : '#FDF8F0',
-                          borderColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? '#D37A68' : isToday ? '#E6D48F' : '#E8D4BC',
-                          color: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : '#4A4542'
+                          backgroundColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : '#FDF8F0',
+                          borderColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : '#E8D4BC',
+                          color: isSelected ? 'white' : '#4A4542'
                         }}
                       >
                         <div className="text-center">
@@ -821,24 +839,24 @@ const StickyNoteTodo = () => {
                           <div className="space-y-1">
                             {taskCount.active > 0 && (
                               <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
-                                backgroundColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'rgba(255,255,255,0.3)' : '#E8D4BC',
-                                color: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : '#6B6660'
+                                backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#E8D4BC',
+                                color: isSelected ? 'white' : '#6B6660'
                               }}>
                                 📝 {taskCount.active}
                               </div>
                             )}
                             {taskCount.completed > 0 && (
                               <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
-                                backgroundColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'rgba(255,255,255,0.3)' : '#B8D4A8',
-                                color: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : '#5A7A4A'
+                                backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#B8D4A8',
+                                color: isSelected ? 'white' : '#5A7A4A'
                               }}>
                                 ✅ {taskCount.completed}
                               </div>
                             )}
                             {hasNote && (
                               <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
-                                backgroundColor: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'rgba(255,255,255,0.3)' : '#90B6C8',
-                                color: weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate) ? 'white' : 'white'
+                                backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#90B6C8',
+                                color: isSelected ? 'white' : 'white'
                               }}>
                                 📓
                               </div>
@@ -869,6 +887,7 @@ const StickyNoteTodo = () => {
                       onClick={() => {
                         setSelectedDate(weekViewSelectedDate);
                         setShowDailyNoteModal(false);
+                        setWeekViewSelectedDate(null);
                       }} 
                       className="px-3 py-1.5 rounded-lg text-xs transition-all hover:opacity-80 whitespace-nowrap" 
                       style={{ backgroundColor: '#D37A68', color: 'white' }}
@@ -876,7 +895,10 @@ const StickyNoteTodo = () => {
                       この日に移動
                     </button>
                     <button 
-                      onClick={() => setShowDailyNoteModal(false)} 
+                      onClick={() => {
+                        setShowDailyNoteModal(false);
+                        setWeekViewSelectedDate(null);
+                      }} 
                       className="px-3 py-1.5 rounded-lg text-xs transition-all hover:opacity-80 whitespace-nowrap" 
                       style={{ backgroundColor: '#B8D4A8', color: 'white' }}
                     >
