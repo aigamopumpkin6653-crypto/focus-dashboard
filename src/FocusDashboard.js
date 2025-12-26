@@ -1263,14 +1263,14 @@ const StickyNoteTodo = () => {
           </div>
 
           <div 
-            className="p-4 rounded-lg border-2" 
+            className="p-5 rounded-lg border-2" 
             style={{ 
               backgroundColor: '#FDF8F0', 
               borderColor: diaryMatchesSearch ? '#90B6C8' : '#E8D4BC',
               borderWidth: diaryMatchesSearch ? '3px' : '2px'
             }}
           >
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#4A4542' }}>
+            <h2 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ color: '#4A4542' }}>
               📓 今日の日記
               {diaryMatchesSearch && (
                 <span className="text-xs font-normal px-2 py-1 rounded" style={{ backgroundColor: '#90B6C8', color: 'white' }}>
@@ -1278,26 +1278,30 @@ const StickyNoteTodo = () => {
                 </span>
               )}
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3 rounded-lg border" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
-                <h3 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>📝 今日の予定</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1" style={{ color: '#8B8680' }}>
+                  📝 今日の予定
+                </h3>
                 <textarea
                   value={currentDailyNote.plan}
                   onChange={(e) => saveDailyNote('plan', e.target.value)}
                   placeholder="今日やること、目標、予定など..."
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none resize-none text-sm"
-                  style={{ borderColor: '#E8D4BC', backgroundColor: 'white', color: '#6B6660', minHeight: '120px' }}
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none resize-none text-sm"
+                  style={{ backgroundColor: 'white', color: '#6B6660', minHeight: '120px', border: '1px solid #E8D4BC' }}
                 />
               </div>
 
-              <div className="p-3 rounded-lg border" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
-                <h3 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>💭 振り返り</h3>
+              <div>
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1" style={{ color: '#8B8680' }}>
+                  💭 振り返り
+                </h3>
                 <textarea
                   value={currentDailyNote.reflection}
                   onChange={(e) => saveDailyNote('reflection', e.target.value)}
                   placeholder="今日の振り返り、気づき、感謝など..."
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none resize-none text-sm"
-                  style={{ borderColor: '#E8D4BC', backgroundColor: 'white', color: '#6B6660', minHeight: '120px' }}
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none resize-none text-sm"
+                  style={{ backgroundColor: 'white', color: '#6B6660', minHeight: '120px', border: '1px solid #E8D4BC' }}
                 />
               </div>
             </div>
