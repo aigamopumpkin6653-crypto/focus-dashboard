@@ -79,7 +79,6 @@ const StickyNoteTodo = () => {
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + days);
     
-    // アニメーション開始
     setIsTransitioning(true);
     setSlideDirection(days > 0 ? 'left' : 'right');
     
@@ -533,7 +532,6 @@ const StickyNoteTodo = () => {
     event.target.value = '';
   };
 
-  // スワイプ機能
   const minSwipeDistance = 50;
 
   const onTouchStart = (e) => {
@@ -553,10 +551,10 @@ const StickyNoteTodo = () => {
     const isRightSwipe = distance < -minSwipeDistance;
     
     if (isLeftSwipe) {
-      changeDate(1); // 次の日へ
+      changeDate(1);
     }
     if (isRightSwipe) {
-      changeDate(-1); // 前の日へ
+      changeDate(-1);
     }
   };
 
@@ -755,252 +753,256 @@ const StickyNoteTodo = () => {
       </div>
 
       {showDailyNoteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowDailyNoteModal(false)}>
-          <div className="px-3 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
-                <Calendar size={20} />
-                週間ビュー
-              </h3>
-              <button onClick={() => {
-                setShowDailyNoteModal(false);
-                setWeekViewSelectedDate(null);
-              }} className="p-1 rounded transition-all hover:bg-gray-200">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => {
+          setShowDailyNoteModal(false);
+          setWeekViewSelectedDate(null);
+        }}>
+          <div 
+            className="rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            style={{ backgroundColor: '#FDF8F0' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 p-4 border-b-2" style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
+                  <Calendar size={20} />
+                  週間ビュー
+                </h3>
                 <button 
                   onClick={() => {
-                    const newDate = new Date(weekViewDate);
-                    newDate.setDate(newDate.getDate() - 7);
-                    setWeekViewDate(newDate);
-                  }}
-                  className="p-2 rounded-lg transition-all hover:opacity-80"
-                  style={{ backgroundColor: '#E8D4BC' }}
+                    setShowDailyNoteModal(false);
+                    setWeekViewSelectedDate(null);
+                  }} 
+                  className="p-2 rounded-lg transition-all hover:bg-gray-200"
                 >
-                  <ChevronLeft size={18} />
-                </button>
-                <div className="text-center">
-                  <p className="text-sm font-semibold" style={{ color: '#4A4542' }}>
-                    {weekDays[0].getFullYear()}年 {weekDays[0].getMonth() + 1}月{weekDays[0].getDate()}日 〜 {weekDays[6].getMonth() + 1}月{weekDays[6].getDate()}日
-                  </p>
-                </div>
-                <button 
-                  onClick={() => {
-                    const newDate = new Date(weekViewDate);
-                    newDate.setDate(newDate.getDate() + 7);
-                    setWeekViewDate(newDate);
-                  }}
-                  className="p-2 rounded-lg transition-all hover:opacity-80"
-                  style={{ backgroundColor: '#E8D4BC' }}
-                >
-                  <ChevronRight size={18} />
+                  <X size={20} />
                 </button>
               </div>
-              
-              <div className="overflow-x-auto pb-2">
-                <div className="flex gap-1.5 min-w-max">
-                  {weekDays.map((date, index) => {
-                    const taskCount = getTaskCountForDate(date);
-                    const hasNote = hasNoteForDate(date);
-                    const isToday = formatDateStr(date) === formatDateStr(new Date());
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    const isSelected = weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate);
-                    
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          if (!weekViewSelectedDate) {
-                            setWeekViewSelectedDate(selectedDate);
-                            setTimeout(() => {
+            </div>
+
+            <div className="p-4">
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <button 
+                    onClick={() => {
+                      const newDate = new Date(weekViewDate);
+                      newDate.setDate(newDate.getDate() - 7);
+                      setWeekViewDate(newDate);
+                    }}
+                    className="p-2 rounded-lg transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#E8D4BC' }}
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold" style={{ color: '#4A4542' }}>
+                      {weekDays[0].getFullYear()}年 {weekDays[0].getMonth() + 1}月{weekDays[0].getDate()}日 〜 {weekDays[6].getMonth() + 1}月{weekDays[6].getDate()}日
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const newDate = new Date(weekViewDate);
+                      newDate.setDate(newDate.getDate() + 7);
+                      setWeekViewDate(newDate);
+                    }}
+                    className="p-2 rounded-lg transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#E8D4BC' }}
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto pb-2">
+                  <div className="flex gap-2 min-w-max">
+                    {weekDays.map((date, index) => {
+                      const taskCount = getTaskCountForDate(date);
+                      const hasNote = hasNoteForDate(date);
+                      const isToday = formatDateStr(date) === formatDateStr(new Date());
+                      const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                      const isSelected = weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate);
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            if (!weekViewSelectedDate) {
+                              setWeekViewSelectedDate(selectedDate);
+                              setTimeout(() => {
+                                setWeekViewSelectedDate(date);
+                              }, 0);
+                            } else {
                               setWeekViewSelectedDate(date);
-                            }, 0);
-                          } else {
-                            setWeekViewSelectedDate(date);
-                          }
-                        }}
-                        className="flex-shrink-0 p-2 rounded-lg border-2 transition-all hover:shadow-lg"
-                        style={{
-                          width: '75px',
-                          backgroundColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : '#FDF8F0',
-                          borderColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : '#E8D4BC',
-                          color: isSelected ? 'white' : '#4A4542'
-                        }}
+                            }
+                          }}
+                          className="flex-shrink-0 p-3 rounded-lg border-2 transition-all hover:shadow-lg"
+                          style={{
+                            width: '80px',
+                            backgroundColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : 'white',
+                            borderColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : '#E8D4BC',
+                            color: isSelected ? 'white' : '#4A4542'
+                          }}
+                        >
+                          <div className="text-center">
+                            <div className="text-xs font-medium mb-1" style={{ opacity: 0.8 }}>
+                              {dayNames[date.getDay()]}
+                            </div>
+                            <div className="text-xl font-bold mb-2">
+                              {date.getDate()}
+                            </div>
+                            <div className="space-y-1">
+                              {taskCount.active > 0 && (
+                                <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                                  backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#E8D4BC',
+                                  color: isSelected ? 'white' : '#6B6660'
+                                }}>
+                                  📝 {taskCount.active}
+                                </div>
+                              )}
+                              {taskCount.completed > 0 && (
+                                <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                                  backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#B8D4A8',
+                                  color: isSelected ? 'white' : '#5A7A4A'
+                                }}>
+                                  ✅ {taskCount.completed}
+                                </div>
+                              )}
+                              {hasNote && (
+                                <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                                  backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#90B6C8',
+                                  color: isSelected ? 'white' : 'white'
+                                }}>
+                                  📓
+                                </div>
+                              )}
+                              {taskCount.active === 0 && taskCount.completed === 0 && !hasNote && (
+                                <div className="text-xs" style={{ opacity: 0.5 }}>
+                                  -
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {weekViewSelectedDate && (
+                <div className="p-4 rounded-lg border-2" style={{ backgroundColor: 'white', borderColor: '#E8D4BC' }}>
+                  <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+                    <h4 className="text-base font-bold flex items-center gap-2" style={{ color: '#4A4542' }}>
+                      <Calendar size={18} />
+                      {weekViewSelectedDate.getMonth() + 1}月{weekViewSelectedDate.getDate()}日（{['日', '月', '火', '水', '木', '金', '土'][weekViewSelectedDate.getDay()]}）
+                    </h4>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => {
+                          setSelectedDate(weekViewSelectedDate);
+                          setShowDailyNoteModal(false);
+                          setWeekViewSelectedDate(null);
+                        }} 
+                        className="px-3 py-1.5 rounded-lg text-sm transition-all hover:opacity-80 whitespace-nowrap font-medium" 
+                        style={{ backgroundColor: '#D37A68', color: 'white' }}
                       >
-                        <div className="text-center">
-                          <div className="text-xs font-medium mb-0.5" style={{ opacity: 0.8 }}>
-                            {dayNames[date.getDay()]}
-                          </div>
-                          <div className="text-lg font-bold mb-1">
-                            {date.getDate()}
-                          </div>
-                          <div className="space-y-0.5">
-                            {taskCount.active > 0 && (
-                              <div className="text-xs px-1 py-0.5 rounded" style={{ 
-                                backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#E8D4BC',
-                                color: isSelected ? 'white' : '#6B6660'
-                              }}>
-                                📝{taskCount.active}
-                              </div>
-                            )}
-                            {taskCount.completed > 0 && (
-                              <div className="text-xs px-1 py-0.5 rounded" style={{ 
-                                backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#B8D4A8',
-                                color: isSelected ? 'white' : '#5A7A4A'
-                              }}>
-                                ✅{taskCount.completed}
-                              </div>
-                            )}
-                            {hasNote && (
-                              <div className="text-xs px-1 py-0.5 rounded" style={{ 
-                                backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#90B6C8',
-                                color: isSelected ? 'white' : 'white'
-                              }}>
-                                📓
-                              </div>
-                            )}
-                            {taskCount.active === 0 && taskCount.completed === 0 && !hasNote && (
-                              <div className="text-xs" style={{ opacity: 0.5 }}>
-                                -
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        この日に移動
                       </button>
-                    );
-                  })}
+                      <button 
+                        onClick={() => {
+                          setShowDailyNoteModal(false);
+                          setWeekViewSelectedDate(null);
+                        }} 
+                        className="px-3 py-1.5 rounded-lg text-sm transition-all hover:opacity-80 whitespace-nowrap" 
+                        style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
+                      >
+                        閉じる
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <h5 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#8B8680' }}>
+                      📝 タスク
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}>
+                        <h6 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>残タスク ({weekViewTasks.length}件)</h6>
+                        {weekViewTasks.length > 0 ? (
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                            {weekViewTasks.map(task => (
+                              <div 
+                                key={task.id}
+                                className="text-sm p-2 rounded"
+                                style={{ backgroundColor: dustyColors[task.category], color: 'white' }}
+                              >
+                                {task.name}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-center py-4" style={{ color: '#8B8680' }}>
+                            残タスクなし
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#E8F4E0', borderColor: '#D4E4C8' }}>
+                        <h6 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>完了済み ({weekViewCompleted.length}件)</h6>
+                        {weekViewCompleted.length > 0 ? (
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                            {weekViewCompleted.map((task, index) => (
+                              <div 
+                                key={`${task.id}-${index}`}
+                                className="text-sm p-2 rounded line-through opacity-70"
+                                style={{ backgroundColor: dustyColors[task.category], color: 'white' }}
+                              >
+                                {task.name}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-center py-4" style={{ color: '#8B8680' }}>
+                            完了済みタスクなし
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h5 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#8B8680' }}>
+                      📓 日記
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
+                        <h6 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>📝 今日の予定</h6>
+                        {weekViewDailyNote.plan ? (
+                          <div className="text-sm whitespace-pre-wrap max-h-32 overflow-y-auto p-2 rounded" style={{ color: '#6B6660', backgroundColor: 'white' }}>
+                            {weekViewDailyNote.plan}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-center py-4" style={{ color: '#8B8680' }}>
+                            予定なし
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
+                        <h6 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>💭 振り返り</h6>
+                        {weekViewDailyNote.reflection ? (
+                          <div className="text-sm whitespace-pre-wrap max-h-32 overflow-y-auto p-2 rounded" style={{ color: '#6B6660', backgroundColor: 'white' }}>
+                            {weekViewDailyNote.reflection}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-center py-4" style={{ color: '#8B8680' }}>
+                            振り返りなし
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-
-            {weekViewSelectedDate && (
-              <div className="px-3 pb-3">
-                <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
-                  <h4 className="text-sm font-bold flex items-center gap-2" style={{ color: '#4A4542' }}>
-                    <Calendar size={16} />
-                    {weekViewSelectedDate.getMonth() + 1}月{weekViewSelectedDate.getDate()}日（{['日', '月', '火', '水', '木', '金', '土'][weekViewSelectedDate.getDay()]}）
-                  </h4>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => {
-                        setSelectedDate(weekViewSelectedDate);
-                        setShowDailyNoteModal(false);
-                        setWeekViewSelectedDate(null);
-                      }} 
-                      className="px-2 py-1 rounded-lg text-xs transition-all hover:opacity-80 whitespace-nowrap" 
-                      style={{ backgroundColor: '#D37A68', color: 'white' }}
-                    >
-                      この日に移動
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setShowDailyNoteModal(false);
-                        setWeekViewSelectedDate(null);
-                      }} 
-                      className="px-2 py-1 rounded-lg text-xs transition-all hover:opacity-80 whitespace-nowrap" 
-                      style={{ backgroundColor: '#B8D4A8', color: 'white' }}
-                    >
-                      閉じる
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <h5 className="text-xs font-semibold mb-2 flex items-center gap-2" style={{ color: '#8B8680' }}>
-                    📝 タスク
-                  </h5>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="p-2 rounded-lg border-2" style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}>
-                      <h6 className="text-xs font-semibold mb-1" style={{ color: '#8B8680' }}>残タスク</h6>
-                      {weekViewTasks.length > 0 ? (
-                        <div className="space-y-1">
-                          {weekViewTasks.slice(0, 3).map(task => (
-                            <div 
-                              key={task.id}
-                              className="text-xs p-1 rounded"
-                              style={{ backgroundColor: dustyColors[task.category], color: 'white' }}
-                            >
-                              {task.name}
-                            </div>
-                          ))}
-                          {weekViewTasks.length > 3 && (
-                            <div className="text-xs text-center" style={{ color: '#8B8680' }}>
-                              ...他 {weekViewTasks.length - 3}件
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-center py-2" style={{ color: '#8B8680' }}>
-                          残タスクなし
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-2 rounded-lg border-2" style={{ backgroundColor: '#E8F4E0', borderColor: '#D4E4C8' }}>
-                      <h6 className="text-xs font-semibold mb-1" style={{ color: '#8B8680' }}>完了済み</h6>
-                      {weekViewCompleted.length > 0 ? (
-                        <div className="space-y-1">
-                          {weekViewCompleted.slice(0, 3).map((task, index) => (
-                            <div 
-                              key={`${task.id}-${index}`}
-                              className="text-xs p-1 rounded line-through opacity-70"
-                              style={{ backgroundColor: dustyColors[task.category], color: 'white' }}
-                            >
-                              {task.name}
-                            </div>
-                          ))}
-                          {weekViewCompleted.length > 3 && (
-                            <div className="text-xs text-center" style={{ color: '#8B8680' }}>
-                              ...他 {weekViewCompleted.length - 3}件
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-center py-2" style={{ color: '#8B8680' }}>
-                          完了済みタスクなし
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h5 className="text-xs font-semibold mb-2 flex items-center gap-2" style={{ color: '#8B8680' }}>
-                    📓 日記
-                  </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div className="p-2 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
-                      <h6 className="text-xs font-semibold mb-1" style={{ color: '#8B8680' }}>📝 今日の予定</h6>
-                      {weekViewDailyNote.plan ? (
-                        <div className="text-xs whitespace-pre-wrap max-h-20 overflow-y-auto" style={{ color: '#6B6660' }}>
-                          {weekViewDailyNote.plan}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-center py-2" style={{ color: '#8B8680' }}>
-                          予定なし
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
-                      <h6 className="text-xs font-semibold mb-1" style={{ color: '#8B8680' }}>💭 振り返り</h6>
-                      {weekViewDailyNote.reflection ? (
-                        <div className="text-xs whitespace-pre-wrap max-h-20 overflow-y-auto" style={{ color: '#6B6660' }}>
-                          {weekViewDailyNote.reflection}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-center py-2" style={{ color: '#8B8680' }}>
-                          振り返りなし
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1096,7 +1098,6 @@ const StickyNoteTodo = () => {
         onTouchEnd={onTouchEnd}
       >
         <div className="max-w-6xl mx-auto">
-          {/* 残タスクエリア */}
           <div 
             className="mb-6 p-4 rounded-lg border-2 min-h-[200px]" 
             style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}
@@ -1208,7 +1209,6 @@ const StickyNoteTodo = () => {
             )}
           </div>
 
-          {/* 完了済みエリア */}
           <div 
             className="p-4 rounded-lg border-2 min-h-[200px] mb-6" 
             style={{ backgroundColor: '#E8F4E0', borderColor: '#D4E4C8' }}
@@ -1262,7 +1262,6 @@ const StickyNoteTodo = () => {
             )}
           </div>
 
-          {/* 今日の日記エリア */}
           <div 
             className="p-4 rounded-lg border-2" 
             style={{ 
