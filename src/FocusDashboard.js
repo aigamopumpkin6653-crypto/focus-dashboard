@@ -532,7 +532,7 @@ const StickyNoteTodo = () => {
     event.target.value = '';
   };
 
-  const minSwipeDistance = 50;
+  const minSwipeDistance = 100;
 
   const onTouchStart = (e) => {
     setTouchEnd(null);
@@ -617,8 +617,17 @@ const StickyNoteTodo = () => {
                 <>
                   {formatDateStr(selectedDate) !== formatDateStr(new Date()) && (
                     <button 
-                      onClick={() => setSelectedDate(new Date())} 
-                      className="p-2 rounded-lg transition-all hover:opacity-80"
+                      onClick={() => {
+                        // アニメーション効果
+                        setIsTransitioning(true);
+                        setSlideDirection('right');
+                        setTimeout(() => {
+                          setSelectedDate(new Date());
+                          setIsTransitioning(false);
+                          setSlideDirection('');
+                        }, 150);
+                      }} 
+                      className="p-2 rounded-lg transition-all hover:opacity-80 active:scale-95"
                       style={{ backgroundColor: '#90B6C8', color: 'white' }}
                       title="今日に戻る"
                     >
