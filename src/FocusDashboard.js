@@ -23,19 +23,6 @@ const StickyNoteTodo = () => {
   
   const [showAddTask, setShowAddTask] = useState(false);
   const [categories, setCategories] = useState(['仕事', '学習', '個人', 'その他']);
-  
-  useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  }, [tasks]);
-
-  useEffect(() => {
-    localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
-  }, [completedTasks]);
-
-  useEffect(() => {
-    localStorage.setItem('dailyNotes', JSON.stringify(dailyNotes));
-  }, [dailyNotes]);
-  
   const [newTask, setNewTask] = useState({ 
     name: '', 
     category: '仕事', 
@@ -69,6 +56,34 @@ const StickyNoteTodo = () => {
     '個人': '#90B6C8',
     'その他': '#A5BFA8'
   };
+
+  useEffect(() => {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+  }, [completedTasks]);
+
+  useEffect(() => {
+    localStorage.setItem('dailyNotes', JSON.stringify(dailyNotes));
+  }, [dailyNotes]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showMenu && !event.target.closest('.menu-container')) {
+        setShowMenu(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showMenu]);
 
   const formatDateStr = (date) => {
     const d = new Date(date);
@@ -618,7 +633,6 @@ const StickyNoteTodo = () => {
                   {formatDateStr(selectedDate) !== formatDateStr(new Date()) && (
                     <button 
                       onClick={() => {
-                        // アニメーション効果
                         setIsTransitioning(true);
                         setSlideDirection('right');
                         setTimeout(() => {
@@ -654,7 +668,7 @@ const StickyNoteTodo = () => {
                   >
                     <Plus size={20} />
                   </button>
-                  <div className="relative">
+                  <div className="relative menu-container">
                     <button 
                       onClick={() => setShowMenu(!showMenu)} 
                       className="p-2 rounded-lg transition-all hover:opacity-80"
