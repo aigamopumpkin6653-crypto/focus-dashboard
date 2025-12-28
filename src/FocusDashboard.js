@@ -28,7 +28,8 @@ const StickyNoteTodo = () => {
     category: '仕事', 
     isRoutine: false,
     routineTime: 'morning',
-    memo: ''
+    memo: '',
+    subtasks: []
   });
   const [draggedTask, setDraggedTask] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
@@ -49,6 +50,9 @@ const StickyNoteTodo = () => {
   const [touchEnd, setTouchEnd] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [slideDirection, setSlideDirection] = useState('');
+  const [showSubtaskModal, setShowSubtaskModal] = useState(false);
+  const [subtaskModalTask, setSubtaskModalTask] = useState(null);
+  const [newSubtaskText, setNewSubtaskText] = useState('');
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -271,7 +275,8 @@ const StickyNoteTodo = () => {
         category: '仕事', 
         isRoutine: false,
         routineTime: 'morning',
-        memo: ''
+        memo: '',
+        subtasks: []
       });
       setShowAddTask(false);
     }
@@ -571,6 +576,64 @@ const StickyNoteTodo = () => {
     if (isRightSwipe) {
       changeDate(-1);
     }
+  };
+
+  const openSubtaskModal = (task, e) => {
+    e.stopPropagation();
+    setSubtaskModalTask(task);
+    setShowSubtaskModal(true);
+  };
+
+  const closeSubtaskModal = () => {
+    setShowSubtaskModal(false);
+    setSubtaskModalTask(null);
+    setNewSubtaskText('');
+  };
+
+  const addSubtask = () => {
+    if (newSubtaskText.trim() && subtaskModalTask) {
+      const updatedTask = {
+        ...subtaskModalTask,
+        subtasks: [
+          ...(subtaskModalTask.subtasks || []),
+          { id: Date.now(), text: newSubtaskText, completed: false }
+        ]
+      };
+      setTasks(tasks.map(t => t.id === subtaskModalTask.id ? updatedTask : t));
+      setSubtaskModalTask(updatedTask);
+      setNewSubtaskText('');
+    }
+  };
+
+  const toggleSubtask = (subtaskId) => {
+    if (subtaskModalTask) {
+      const updatedTask = {
+        ...subtaskModalTask,
+        subtasks: subtaskModalTask.subtasks.map(st =>
+          st.id === subtaskId ? { ...st, completed: !st.completed } : st
+        )
+      };
+      setTasks(tasks.map(t => t.id === subtaskModalTask.id ? updatedTask : t));
+      setSubtaskModalTask(updatedTask);
+    }
+  };
+
+  const deleteSubtask = (subtaskId) => {
+    if (subtaskModalTask) {
+      const updatedTask = {
+        ...subtaskModalTask,
+        subtasks: subtaskModalTask.subtasks.filter(st => st.id !== subtaskId)
+      };
+      setTasks(tasks.map(t => t.id === subtaskModalTask.id ? updatedTask : t));
+      setSubtaskModalTask(updatedTask);
+    }
+  };
+
+  const getSubtaskStats = (task) => {
+    if (!task.subtasks || task.subtasks.length === 0) return null;
+    const completed = task.subtasks.filter(st => st.completed).length;
+    const total = task.subtasks.length;
+    return { completed, total };
   };
 
   return (
@@ -1134,28 +1197,65 @@ const StickyNoteTodo = () => {
             {morningRoutines.length > 0 && (
               <div className="mb-4">
                 <div className="flex flex-wrap gap-3">
-                  {morningRoutines.map(task => (
-                    <div
-                      key={task.id}
-                      className="p-4 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md group relative"
-                      style={{ 
-                        backgroundColor: dustyColors[task.category],
-                        minWidth: '140px',
-                        maxWidth: '160px'
-                      }}
-                      onClick={() => completeTask(task)}
-                    >
-                      <div className="text-white font-medium text-sm mb-1">{task.name}</div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
-                          🌅 朝
-                        </span>
-                        {task.memo && (
-                          <FileText size={12} className="text-white opacity-70" title="メモあり" />
-                        )}
+                  {morningRoutines.map(task => {
+                    const subtaskStats = getSubtaskStats(task);
+                    return (
+                      <div
+                        key={task.id}
+                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
+                        style={{ 
+                          backgroundColor: dustyColors[task.category],
+                          minWidth: '140px',
+                          maxWidth: '160px'
+                        }}
+                      >
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => completeTask(task)}
+                        >
+                          <div className="text-white font-medium text-sm mb-1">{task.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
+                              🌅 朝
+                            </span>
+                            {task.memo && (
+                              <FileText size={12} className="text-white opacity-70" title="メモあり" />
+                            )}
+                          </div>
+                          {subtaskStats && (
+                            <div className="text-white text-xs mt-1" style={{ opacity: 0.9 }}>
+                              ✓ {subtaskStats.completed}/{subtaskStats.total}
+                            </div>
+                          )}
+                        </div>
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          {task.memo && (
+                            <button
+                              onClick={(e) => openMemoModal(task, e)}
+                              className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                              title="メモ"
+                            >
+                              <FileText size={14} className="text-white" />
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => openSubtaskModal(task, e)}
+                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                            title="チェックリスト"
+                          >
+                            <BookOpen size={14} className="text-white" />
+                          </button>
+                          <button
+                            onClick={(e) => startEditTask(task, e)}
+                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                            title="編集"
+                          >
+                            <Edit2 size={14} className="text-white" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1164,30 +1264,65 @@ const StickyNoteTodo = () => {
               <div className="mb-4">
                 <div className="flex flex-wrap gap-3">
                   {normalTasks.map(task => {
+                    const subtaskStats = getSubtaskStats(task);
                     return (
                       <div
                         key={task.id}
-                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative cursor-pointer"
+                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
                         style={{ 
                           backgroundColor: dustyColors[task.category],
                           minWidth: '140px',
                           maxWidth: '160px'
                         }}
-                        onClick={() => completeTask(task)}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
-                          {task.name}
-                        </div>
-                        {task.carriedOverFrom && (
-                          <div className="text-white text-xs mb-1" style={{ opacity: 0.9 }}>
-                            🔄 {task.carriedOverFrom}から
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => completeTask(task)}
+                        >
+                          <div className="text-white font-medium text-sm mb-1">
+                            {task.name}
                           </div>
-                        )}
-                        <div className="text-white text-xs opacity-80 flex items-center gap-2">
-                          <span>{task.category}</span>
-                          {task.memo && (
-                            <FileText size={12} className="text-white opacity-70" title="メモあり" />
+                          {task.carriedOverFrom && (
+                            <div className="text-white text-xs mb-1" style={{ opacity: 0.9 }}>
+                              🔄 {task.carriedOverFrom}から
+                            </div>
                           )}
+                          <div className="text-white text-xs opacity-80 flex items-center gap-2">
+                            <span>{task.category}</span>
+                            {task.memo && (
+                              <FileText size={12} className="text-white opacity-70" title="メモあり" />
+                            )}
+                          </div>
+                          {subtaskStats && (
+                            <div className="text-white text-xs mt-1" style={{ opacity: 0.9 }}>
+                              ✓ {subtaskStats.completed}/{subtaskStats.total}
+                            </div>
+                          )}
+                        </div>
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          {task.memo && (
+                            <button
+                              onClick={(e) => openMemoModal(task, e)}
+                              className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                              title="メモ"
+                            >
+                              <FileText size={14} className="text-white" />
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => openSubtaskModal(task, e)}
+                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                            title="チェックリスト"
+                          >
+                            <BookOpen size={14} className="text-white" />
+                          </button>
+                          <button
+                            onClick={(e) => startEditTask(task, e)}
+                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                            title="編集"
+                          >
+                            <Edit2 size={14} className="text-white" />
+                          </button>
                         </div>
                       </div>
                     );
@@ -1199,28 +1334,65 @@ const StickyNoteTodo = () => {
             {eveningRoutines.length > 0 && (
               <div>
                 <div className="flex flex-wrap gap-3">
-                  {eveningRoutines.map(task => (
-                    <div
-                      key={task.id}
-                      className="p-4 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md group relative"
-                      style={{ 
-                        backgroundColor: dustyColors[task.category],
-                        minWidth: '140px',
-                        maxWidth: '160px'
-                      }}
-                      onClick={() => completeTask(task)}
-                    >
-                      <div className="text-white font-medium text-sm mb-1">{task.name}</div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
-                          🌙 夜
-                        </span>
-                        {task.memo && (
-                          <FileText size={12} className="text-white opacity-70" title="メモあり" />
-                        )}
+                  {eveningRoutines.map(task => {
+                    const subtaskStats = getSubtaskStats(task);
+                    return (
+                      <div
+                        key={task.id}
+                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
+                        style={{ 
+                          backgroundColor: dustyColors[task.category],
+                          minWidth: '140px',
+                          maxWidth: '160px'
+                        }}
+                      >
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => completeTask(task)}
+                        >
+                          <div className="text-white font-medium text-sm mb-1">{task.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
+                              🌙 夜
+                            </span>
+                            {task.memo && (
+                              <FileText size={12} className="text-white opacity-70" title="メモあり" />
+                            )}
+                          </div>
+                          {subtaskStats && (
+                            <div className="text-white text-xs mt-1" style={{ opacity: 0.9 }}>
+                              ✓ {subtaskStats.completed}/{subtaskStats.total}
+                            </div>
+                          )}
+                        </div>
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          {task.memo && (
+                            <button
+                              onClick={(e) => openMemoModal(task, e)}
+                              className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                              title="メモ"
+                            >
+                              <FileText size={14} className="text-white" />
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => openSubtaskModal(task, e)}
+                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                            title="チェックリスト"
+                          >
+                            <BookOpen size={14} className="text-white" />
+                          </button>
+                          <button
+                            onClick={(e) => startEditTask(task, e)}
+                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                            title="編集"
+                          >
+                            <Edit2 size={14} className="text-white" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1242,41 +1414,82 @@ const StickyNoteTodo = () => {
               ✅ 完了済み
             </h2>
             <div className="flex flex-wrap gap-3">
-              {todayCompleted.map((task, index) => (
-                <div
-                  key={`${task.id}-${index}`}
-                  className="p-4 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md group relative opacity-70"
-                  style={{ 
-                    backgroundColor: dustyColors[task.category],
-                    minWidth: '140px',
-                    maxWidth: '160px'
-                  }}
-                  onClick={() => uncompleteTask(task)}
-                >
-                  <div className="text-white font-medium text-sm mb-1 line-through">{task.name}</div>
-                  {task.isRoutine ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
-                        {task.routineTime === 'morning' ? '🌅 朝' : '🌙 夜'}
-                      </span>
-                      {task.memo && (
-                        <FileText size={12} className="text-white opacity-70" title="メモあり" />
+              {todayCompleted.map((task, index) => {
+                const subtaskStats = getSubtaskStats(task);
+                return (
+                  <div
+                    key={`${task.id}-${index}`}
+                    className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative opacity-70"
+                    style={{ 
+                      backgroundColor: dustyColors[task.category],
+                      minWidth: '140px',
+                      maxWidth: '160px'
+                    }}
+                  >
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => uncompleteTask(task)}
+                    >
+                      <div className="text-white font-medium text-sm mb-1 line-through">{task.name}</div>
+                      {task.isRoutine ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
+                            {task.routineTime === 'morning' ? '🌅 朝' : '🌙 夜'}
+                          </span>
+                          {task.memo && (
+                            <FileText size={12} className="text-white opacity-70" title="メモあり" />
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-white text-xs opacity-80 flex items-center gap-2">
+                          <span>{task.category}</span>
+                          {task.memo && (
+                            <FileText size={12} className="text-white opacity-70" title="メモあり" />
+                          )}
+                        </div>
+                      )}
+                      <div className="text-white text-xs opacity-60 mt-1">
+                        <Clock size={10} className="inline mr-1" />
+                        {new Date(task.completedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      {subtaskStats && (
+                        <div className="text-white text-xs mt-1" style={{ opacity: 0.7 }}>
+                          ✓ {subtaskStats.completed}/{subtaskStats.total}
+                        </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="text-white text-xs opacity-80 flex items-center gap-2">
-                      <span>{task.category}</span>
+                    <div className="absolute top-2 right-2 flex gap-1">
                       {task.memo && (
-                        <FileText size={12} className="text-white opacity-70" title="メモあり" />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMemoTask(task);
+                            setMemoContent(task.memo || '');
+                            setShowMemoModal(true);
+                          }}
+                          className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                          title="メモ"
+                        >
+                          <FileText size={14} className="text-white" />
+                        </button>
+                      )}
+                      {task.subtasks && task.subtasks.length > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSubtaskModalTask(task);
+                            setShowSubtaskModal(true);
+                          }}
+                          className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+                          title="チェックリスト"
+                        >
+                          <BookOpen size={14} className="text-white" />
+                        </button>
                       )}
                     </div>
-                  )}
-                  <div className="text-white text-xs opacity-60 mt-1">
-                    <Clock size={10} className="inline mr-1" />
-                    {new Date(task.completedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {todayCompleted.length === 0 && (
               <div className="text-center py-8 text-sm" style={{ color: '#8B8680' }}>
@@ -1331,6 +1544,265 @@ const StickyNoteTodo = () => {
           </div>
         </div>
       </div>
+
+      {showSubtaskModal && subtaskModalTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={closeSubtaskModal}>
+          <div 
+            className="rounded-lg shadow-2xl max-w-md w-full"
+            style={{ backgroundColor: '#FDF8F0' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b-2" style={{ borderColor: '#E8D4BC' }}>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
+                  <BookOpen size={20} />
+                  チェックリスト
+                </h3>
+                <button 
+                  onClick={closeSubtaskModal} 
+                  className="p-1 rounded-lg transition-all hover:bg-gray-200"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div 
+                className="text-sm font-medium px-2 py-1 rounded inline-block"
+                style={{ backgroundColor: dustyColors[subtaskModalTask.category], color: 'white' }}
+              >
+                {subtaskModalTask.name}
+              </div>
+            </div>
+
+            <div className="p-4 max-h-96 overflow-y-auto">
+              {subtaskModalTask.subtasks && subtaskModalTask.subtasks.length > 0 ? (
+                <div className="space-y-2 mb-4">
+                  {subtaskModalTask.subtasks.map(subtask => (
+                    <div 
+                      key={subtask.id}
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-all group"
+                    >
+                      <button
+                        onClick={() => toggleSubtask(subtask.id)}
+                        className="flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
+                        style={{ 
+                          borderColor: subtask.completed ? '#B8D4A8' : '#E8D4BC',
+                          backgroundColor: subtask.completed ? '#B8D4A8' : 'white'
+                        }}
+                        disabled={subtaskModalTask.completedAt}
+                      >
+                        {subtask.completed && <Check size={14} className="text-white" />}
+                      </button>
+                      <span 
+                        className="flex-1 text-sm"
+                        style={{ 
+                          color: subtask.completed ? '#8B8680' : '#4A4542',
+                          textDecoration: subtask.completed ? 'line-through' : 'none'
+                        }}
+                      >
+                        {subtask.text}
+                      </span>
+                      {!subtaskModalTask.completedAt && (
+                        <button
+                          onClick={() => deleteSubtask(subtask.id)}
+                          className="flex-shrink-0 p-1 rounded hover:bg-red-100 transition-all opacity-0 group-hover:opacity-100"
+                          title="削除"
+                        >
+                          <X size={16} style={{ color: '#D37A68' }} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-sm" style={{ color: '#8B8680' }}>
+                  チェックリストはまだありません
+                </div>
+              )}
+
+              {!subtaskModalTask.completedAt && (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newSubtaskText}
+                    onChange={(e) => setNewSubtaskText(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addSubtask()}
+                    placeholder="新しい項目を追加..."
+                    className="flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none text-sm"
+                    style={{ borderColor: '#E8D4BC' }}
+                  />
+                  <button
+                    onClick={addSubtask}
+                    className="px-4 py-2 rounded-lg transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#B8D4A8', color: 'white' }}
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t-2" style={{ borderColor: '#E8D4BC' }}>
+              <button
+                onClick={closeSubtaskModal}
+                className="w-full px-4 py-2 rounded-lg transition-all hover:opacity-80"
+                style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMemoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={closeMemoModal}>
+          <div 
+            className="rounded-lg shadow-2xl max-w-md w-full"
+            style={{ backgroundColor: '#FDF8F0' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b-2" style={{ borderColor: '#E8D4BC' }}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
+                  <FileText size={20} />
+                  メモ
+                </h3>
+                <button 
+                  onClick={closeMemoModal} 
+                  className="p-1 rounded-lg transition-all hover:bg-gray-200"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4">
+              <div 
+                className="text-sm font-medium px-2 py-1 rounded inline-block mb-3"
+                style={{ backgroundColor: dustyColors[memoTask?.category], color: 'white' }}
+              >
+                {memoTask?.name}
+              </div>
+              <textarea
+                value={memoContent}
+                onChange={(e) => setMemoContent(e.target.value)}
+                placeholder="メモを入力..."
+                className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none resize-none text-sm"
+                style={{ borderColor: '#E8D4BC', minHeight: '150px' }}
+                readOnly={memoTask?.completedAt}
+              />
+            </div>
+
+            <div className="p-4 border-t-2 flex gap-2" style={{ borderColor: '#E8D4BC' }}>
+              {!memoTask?.completedAt ? (
+                <>
+                  <button
+                    onClick={saveMemo}
+                    className="flex-1 px-4 py-2 rounded-lg transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#B8D4A8', color: 'white' }}
+                  >
+                    保存
+                  </button>
+                  <button
+                    onClick={closeMemoModal}
+                    className="px-4 py-2 rounded-lg transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
+                  >
+                    キャンセル
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={closeMemoModal}
+                  className="w-full px-4 py-2 rounded-lg transition-all hover:opacity-80"
+                  style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
+                >
+                  閉じる
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={cancelEdit}>
+          <div 
+            className="rounded-lg shadow-2xl max-w-md w-full"
+            style={{ backgroundColor: '#FDF8F0' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b-2" style={{ borderColor: '#E8D4BC' }}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
+                  <Edit2 size={20} />
+                  タスク編集
+                </h3>
+                <button 
+                  onClick={cancelEdit} 
+                  className="p-1 rounded-lg transition-all hover:bg-gray-200"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <input
+                type="text"
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none text-sm"
+                style={{ borderColor: '#E8D4BC' }}
+              />
+              <select
+                value={editFormData.category}
+                onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+                style={{ borderColor: '#E8D4BC' }}
+              >
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: '#6B6660' }}>
+                <input
+                  type="checkbox"
+                  checked={editFormData.isRoutine}
+                  onChange={(e) => setEditFormData({ ...editFormData, isRoutine: e.target.checked })}
+                />
+                ルーティーンタスク
+              </label>
+              {editFormData.isRoutine && (
+                <select
+                  value={editFormData.routineTime}
+                  onChange={(e) => setEditFormData({ ...editFormData, routineTime: e.target.value })}
+                  className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+                  style={{ borderColor: '#E8D4BC' }}
+                >
+                  <option value="morning">朝</option>
+                  <option value="evening">夜</option>
+                </select>
+              )}
+            </div>
+
+            <div className="p-4 border-t-2 flex gap-2" style={{ borderColor: '#E8D4BC' }}>
+              <button
+                onClick={saveEditTask}
+                className="flex-1 px-4 py-2 rounded-lg transition-all hover:opacity-80"
+                style={{ backgroundColor: '#B8D4A8', color: 'white' }}
+              >
+                保存
+              </button>
+              <button
+                onClick={cancelEdit}
+                className="px-4 py-2 rounded-lg transition-all hover:opacity-80"
+                style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
