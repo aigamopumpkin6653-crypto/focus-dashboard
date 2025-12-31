@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar, Search, MoreVertical, Download, Upload, RefreshCw, Check } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar, Search, MoreVertical, Download, Upload, RefreshCw, Check, Mic } from 'lucide-react';
 
 const StickyNoteTodo = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -51,6 +51,9 @@ const StickyNoteTodo = () => {
   const [subtaskModalTask, setSubtaskModalTask] = useState(null);
   const [newSubtaskText, setNewSubtaskText] = useState('');
   const [taskMenuOpen, setTaskMenuOpen] = useState(null);
+  const [isRecordingPlan, setIsRecordingPlan] = useState(false);
+  const [isRecordingReflection, setIsRecordingReflection] = useState(false);
+  const [recognition, setRecognition] = useState(null);
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -58,6 +61,18 @@ const StickyNoteTodo = () => {
     '個人': '#90B6C8',
     'その他': '#A5BFA8'
   };
+
+  useEffect(() => {
+    // Web Speech APIの初期化
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
+      recognitionInstance.lang = 'ja-JP';
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true;
+      setRecognition(recognitionInstance);
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('tasks', JSON.stringify(tasks));
@@ -468,6 +483,63 @@ const StickyNoteTodo = () => {
     return { completed, total };
   };
 
+  const startVoiceInput = (field) => {
+    if (!recognition) {
+      alert('お使いのブラウザは音声入力に対応していません。Chrome、Edge、Safariをお試しください。');
+      return;
+    }
+
+    if (field === 'plan') {
+      if (isRecordingPlan) {
+        recognition.stop();
+        setIsRecordingPlan(false);
+      } else {
+        setIsRecordingPlan(true);
+        recognition.start();
+        
+        recognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          saveDailyNote('plan', currentDailyNote.plan + transcript);
+        };
+        
+        recognition.onerror = () => {
+          setIsRecordingPlan(false);
+        };
+        
+        recognition.onend = () => {
+          setIsRecordingPlan(false);
+        };
+      }
+    } else if (field === 'reflection') {
+      if (isRecordingReflection) {
+        recognition.stop();
+        setIsRecordingReflection(false);
+      } else {
+        setIsRecordingReflection(true);
+        recognition.start();
+        
+        recognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          saveDailyNote('reflection', currentDailyNote.reflection + transcript);
+        };
+        
+        recognition.onerror = () => {
+          setIsRecordingReflection(false);
+        };
+        
+        recognition.onend = () => {
+          setIsRecordingReflection(false);
+        };
+      }
+    }
+  };
+
   const TaskCard = ({ task, onComplete, isCompleted = false }) => {
     const subtaskStats = getSubtaskStats(task);
     const isMenuOpen = taskMenuOpen === task.id;
@@ -874,9 +946,22 @@ const StickyNoteTodo = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <h3 className="text-sm font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#8B8680' }}>
-                  📝 今日の予定
-                </h3>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-sm font-semibold flex items-center gap-1" style={{ color: '#8B8680' }}>
+                    📝 今日の予定
+                  </h3>
+                  <button
+                    onClick={() => startVoiceInput('plan')}
+                    className={`p-1.5 rounded-lg transition-all ${isRecordingPlan ? 'animate-pulse' : ''}`}
+                    style={{ 
+                      backgroundColor: isRecordingPlan ? '#EF4444' : '#E8D4BC',
+                      color: 'white'
+                    }}
+                    title={isRecordingPlan ? '録音中...クリックで停止' : '音声入力'}
+                  >
+                    <Mic size={16} />
+                  </button>
+                </div>
                 <textarea
                   value={currentDailyNote.plan}
                   onChange={(e) => saveDailyNote('plan', e.target.value)}
@@ -887,9 +972,22 @@ const StickyNoteTodo = () => {
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#8B8680' }}>
-                  💭 振り返り
-                </h3>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-sm font-semibold flex items-center gap-1" style={{ color: '#8B8680' }}>
+                    💭 振り返り
+                  </h3>
+                  <button
+                    onClick={() => startVoiceInput('reflection')}
+                    className={`p-1.5 rounded-lg transition-all ${isRecordingReflection ? 'animate-pulse' : ''}`}
+                    style={{ 
+                      backgroundColor: isRecordingReflection ? '#EF4444' : '#E8D4BC',
+                      color: 'white'
+                    }}
+                    title={isRecordingReflection ? '録音中...クリックで停止' : '音声入力'}
+                  >
+                    <Mic size={16} />
+                  </button>
+                </div>
                 <textarea
                   value={currentDailyNote.reflection}
                   onChange={(e) => saveDailyNote('reflection', e.target.value)}
