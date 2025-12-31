@@ -543,10 +543,29 @@ const StickyNoteTodo = () => {
   const TaskCard = ({ task, onComplete, isCompleted = false }) => {
     const subtaskStats = getSubtaskStats(task);
     const isMenuOpen = taskMenuOpen === task.id;
+    const [tapCount, setTapCount] = useState(0);
+    const [tapTimer, setTapTimer] = useState(null);
     
     const handleMenuClick = (e) => {
       e.stopPropagation();
       setTaskMenuOpen(isMenuOpen ? null : task.id);
+    };
+    
+    const handleTaskClick = () => {
+      setTapCount(prev => prev + 1);
+      
+      if (tapTimer) {
+        clearTimeout(tapTimer);
+      }
+      
+      const timer = setTimeout(() => {
+        if (tapCount + 1 >= 2) {
+          onComplete(task);
+        }
+        setTapCount(0);
+      }, 300);
+      
+      setTapTimer(timer);
     };
     
     return (
@@ -561,7 +580,7 @@ const StickyNoteTodo = () => {
       >
         <div 
           className="cursor-pointer"
-          onClick={() => onComplete(task)}
+          onClick={handleTaskClick}
         >
           <div className={`text-white font-medium text-sm mb-1 pr-6 ${isCompleted ? 'line-through' : ''}`}>
             {task.name}
