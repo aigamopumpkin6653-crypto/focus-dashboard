@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar, Search, MoreVertical, Download, Upload, ArrowRight, Check, RefreshCw, CalendarDays } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Clock, Edit2, FileText, BookOpen, Calendar, Search, MoreVertical, Download, Upload, RefreshCw, Check } from 'lucide-react';
 
 const StickyNoteTodo = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [showWeekView, setShowWeekView] = useState(false);
   
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem('tasks');
@@ -22,7 +21,7 @@ const StickyNoteTodo = () => {
   });
   
   const [showAddTask, setShowAddTask] = useState(false);
-  const [categories, setCategories] = useState(['仕事', '学習', '個人', 'その他']);
+  const [categories] = useState(['仕事', '学習', '個人', 'その他']);
   const [newTask, setNewTask] = useState({ 
     name: '', 
     category: '仕事', 
@@ -31,19 +30,17 @@ const StickyNoteTodo = () => {
     memo: '',
     subtasks: []
   });
-  const [draggedTask, setDraggedTask] = useState(null);
+  
   const [editingTask, setEditingTask] = useState(null);
   const [editFormData, setEditFormData] = useState({ name: '', category: '', isRoutine: false, routineTime: 'morning' });
   const [showMemoModal, setShowMemoModal] = useState(false);
   const [memoTask, setMemoTask] = useState(null);
   const [memoContent, setMemoContent] = useState('');
   const [showDailyNoteModal, setShowDailyNoteModal] = useState(false);
-  const [dailyNoteTab, setDailyNoteTab] = useState('plan');
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [carryOverMode, setCarryOverMode] = useState(false);
   const [selectedCarryOverTasks, setSelectedCarryOverTasks] = useState([]);
-  const [openTaskMenu, setOpenTaskMenu] = useState(null);
   const [weekViewDate, setWeekViewDate] = useState(new Date());
   const [weekViewSelectedDate, setWeekViewSelectedDate] = useState(null);
   const [touchStart, setTouchStart] = useState(null);
@@ -53,6 +50,7 @@ const StickyNoteTodo = () => {
   const [showSubtaskModal, setShowSubtaskModal] = useState(false);
   const [subtaskModalTask, setSubtaskModalTask] = useState(null);
   const [newSubtaskText, setNewSubtaskText] = useState('');
+  const [taskMenuOpen, setTaskMenuOpen] = useState(null);
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -78,6 +76,9 @@ const StickyNoteTodo = () => {
       if (showMenu && !event.target.closest('.menu-container')) {
         setShowMenu(false);
       }
+      if (taskMenuOpen && !event.target.closest('.task-card-menu')) {
+        setTaskMenuOpen(null);
+      }
     };
     
     document.addEventListener('mousedown', handleClickOutside);
@@ -87,7 +88,7 @@ const StickyNoteTodo = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [showMenu]);
+  }, [showMenu, taskMenuOpen]);
 
   const formatDateStr = (date) => {
     const d = new Date(date);
@@ -109,89 +110,6 @@ const StickyNoteTodo = () => {
   };
 
   const selectedDateStr = useMemo(() => formatDateStr(selectedDate), [selectedDate]);
-
-  const getWeekStart = (date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day;
-    return new Date(d.setDate(diff));
-  };
-
-  const weekDays = useMemo(() => {
-    const start = getWeekStart(weekViewDate);
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
-      return date;
-    });
-  }, [weekViewDate]);
-
-  const getTaskCountForDate = (date) => {
-    const dateStr = formatDateStr(date);
-    const dayTasks = tasks.filter(t => {
-      if (t.isRoutine) {
-        const taskCreatedStr = formatDateStr(t.createdAt);
-        const isCompletedOnDate = completedTasks.some(ct => 
-          ct.id === t.id && formatDateStr(ct.completedAt) === dateStr
-        );
-        return dateStr >= taskCreatedStr && !isCompletedOnDate;
-      }
-      const taskDateStr = formatDateStr(t.createdAt);
-      const isCompletedOnDate = completedTasks.some(ct => 
-        ct.id === t.id && formatDateStr(ct.completedAt) === dateStr
-      );
-      return taskDateStr === dateStr && !isCompletedOnDate;
-    });
-    
-    const dayCompleted = completedTasks.filter(ct => {
-      const completedDateStr = formatDateStr(ct.completedAt);
-      return completedDateStr === dateStr;
-    });
-
-    return { active: dayTasks.length, completed: dayCompleted.length };
-  };
-
-  const hasNoteForDate = (date) => {
-    const dateStr = formatDateStr(date);
-    const note = dailyNotes[dateStr];
-    return note && (note.plan || note.reflection);
-  };
-
-  const weekViewSelectedDateStr = useMemo(() => 
-    weekViewSelectedDate ? formatDateStr(weekViewSelectedDate) : '', 
-    [weekViewSelectedDate]
-  );
-
-  const weekViewTasks = useMemo(() => {
-    if (!weekViewSelectedDate) return [];
-    return tasks.filter(t => {
-      if (t.isRoutine) {
-        const taskCreatedStr = formatDateStr(t.createdAt);
-        const isCompletedOnDate = completedTasks.some(ct => 
-          ct.id === t.id && formatDateStr(ct.completedAt) === weekViewSelectedDateStr
-        );
-        return weekViewSelectedDateStr >= taskCreatedStr && !isCompletedOnDate;
-      }
-      const taskDateStr = formatDateStr(t.createdAt);
-      const isCompletedOnDate = completedTasks.some(ct => 
-        ct.id === t.id && formatDateStr(ct.completedAt) === weekViewSelectedDateStr
-      );
-      return taskDateStr === weekViewSelectedDateStr && !isCompletedOnDate;
-    });
-  }, [tasks, weekViewSelectedDate, weekViewSelectedDateStr, completedTasks]);
-
-  const weekViewCompleted = useMemo(() => {
-    if (!weekViewSelectedDate) return [];
-    return completedTasks.filter(ct => {
-      const completedDateStr = formatDateStr(ct.completedAt);
-      return completedDateStr === weekViewSelectedDateStr;
-    });
-  }, [completedTasks, weekViewSelectedDate, weekViewSelectedDateStr]);
-
-  const weekViewDailyNote = useMemo(() => {
-    if (!weekViewSelectedDate) return { plan: '', reflection: '' };
-    return dailyNotes[weekViewSelectedDateStr] || { plan: '', reflection: '' };
-  }, [dailyNotes, weekViewSelectedDate, weekViewSelectedDateStr]);
 
   const matchesSearch = (text) => {
     if (!searchKeyword.trim()) return true;
@@ -248,21 +166,6 @@ const StickyNoteTodo = () => {
     return todayTasks.filter(t => !t.isRoutine);
   }, [todayTasks]);
 
-  const isPastDate = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selected = new Date(selectedDate);
-    selected.setHours(0, 0, 0, 0);
-    return selected < today;
-  }, [selectedDate]);
-
-  const diaryMatchesSearch = useMemo(() => {
-    if (!searchKeyword.trim()) return false;
-    const note = dailyNotes[selectedDateStr];
-    if (!note) return false;
-    return matchesSearch(note.plan || '') || matchesSearch(note.reflection || '');
-  }, [dailyNotes, selectedDateStr, searchKeyword]);
-
   const addTask = () => {
     if (newTask.name.trim()) {
       setTasks([...tasks, {
@@ -307,61 +210,6 @@ const StickyNoteTodo = () => {
     ));
   };
 
-  const moveTaskToToday = (task) => {
-    const today = new Date();
-    const updatedTask = {
-      ...task,
-      createdAt: today.toISOString(),
-      carriedOverFrom: task.carriedOverFrom || formatDateStr(task.createdAt)
-    };
-    
-    setTasks(tasks.map(t => 
-      t.id === task.id 
-        ? { ...t, carriedOverTo: formatDateStr(today) }
-        : t
-    ));
-    
-    setTimeout(() => {
-      setTasks(prev => [...prev, { ...updatedTask, id: Date.now() }]);
-    }, 100);
-    
-    setSelectedDate(today);
-  };
-
-  const toggleCarryOverSelection = (taskId) => {
-    if (selectedCarryOverTasks.includes(taskId)) {
-      setSelectedCarryOverTasks(selectedCarryOverTasks.filter(id => id !== taskId));
-    } else {
-      setSelectedCarryOverTasks([...selectedCarryOverTasks, taskId]);
-    }
-  };
-
-  const executeCarryOver = () => {
-    const today = new Date();
-    const tasksToCarryOver = tasks.filter(t => selectedCarryOverTasks.includes(t.id));
-    
-    setTasks(tasks.map(t => 
-      selectedCarryOverTasks.includes(t.id)
-        ? { ...t, carriedOverTo: formatDateStr(today) }
-        : t
-    ));
-    
-    setTimeout(() => {
-      const newTasks = tasksToCarryOver.map(task => ({
-        ...task,
-        id: Date.now() + Math.random(),
-        createdAt: today.toISOString(),
-        carriedOverFrom: task.carriedOverFrom || formatDateStr(task.createdAt),
-        carriedOverTo: undefined
-      }));
-      setTasks(prev => [...prev, ...newTasks]);
-    }, 100);
-    
-    setCarryOverMode(false);
-    setSelectedCarryOverTasks([]);
-    setSelectedDate(today);
-  };
-
   const carryOverAllTasks = () => {
     const today = new Date();
     const yesterday = new Date(today);
@@ -401,30 +249,6 @@ const StickyNoteTodo = () => {
     }, 100);
     
     setSelectedDate(today);
-  };
-
-  const handleDragStart = (task, isCompleted = false) => {
-    setDraggedTask({ ...task, wasCompleted: isCompleted });
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDropToActive = (e) => {
-    e.preventDefault();
-    if (draggedTask && draggedTask.wasCompleted) {
-      uncompleteTask(draggedTask);
-      setDraggedTask(null);
-    }
-  };
-
-  const handleDropToCompleted = (e) => {
-    e.preventDefault();
-    if (draggedTask && !draggedTask.wasCompleted) {
-      completeTask(draggedTask);
-      setDraggedTask(null);
-    }
   };
 
   const startEditTask = (task, e) => {
@@ -518,7 +342,7 @@ const StickyNoteTodo = () => {
     }, 100);
     
     setTimeout(() => {
-      alert(`✅ バックアップファイルを作成しました！\n\nタスク: ${tasks.length}件\n完了済み: ${completedTasks.length}件\n日記: ${Object.keys(dailyNotes).length}日分\n\nダウンロードフォルダを確認してください。`);
+      alert(`✅ バックアップファイルを作成しました`);
     }, 200);
   };
 
@@ -535,7 +359,7 @@ const StickyNoteTodo = () => {
         if (data.completedTasks) setCompletedTasks(data.completedTasks);
         if (data.dailyNotes) setDailyNotes(data.dailyNotes);
         
-        alert(`✅ データを復元しました！\n\nタスク: ${data.tasks?.length || 0}件\n完了済み: ${data.completedTasks?.length || 0}件\n日記: ${Object.keys(data.dailyNotes || {}).length}日分`);
+        alert(`✅ データを復元しました`);
         
         setShowMenu(false);
       } catch (error) {
@@ -636,6 +460,168 @@ const StickyNoteTodo = () => {
     return { completed, total };
   };
 
+  const TaskCard = ({ task, onComplete, isCompleted = false }) => {
+    const subtaskStats = getSubtaskStats(task);
+    const isMenuOpen = taskMenuOpen === task.id;
+    
+    return (
+      <div
+        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
+        style={{ 
+          backgroundColor: dustyColors[task.category],
+          minWidth: '140px',
+          maxWidth: '160px',
+          opacity: isCompleted ? 0.7 : 1
+        }}
+      >
+        <div 
+          className="cursor-pointer"
+          onClick={() => onComplete(task)}
+        >
+          <div className={`text-white font-medium text-sm mb-1 pr-6 ${isCompleted ? 'line-through' : ''}`}>
+            {task.name}
+          </div>
+          {task.carriedOverFrom && !isCompleted && (
+            <div className="text-white text-xs mb-1" style={{ opacity: 0.9 }}>
+              🔄 {task.carriedOverFrom}から
+            </div>
+          )}
+          {task.isRoutine ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
+                {task.routineTime === 'morning' ? '🌅 朝' : '🌙 夜'}
+              </span>
+            </div>
+          ) : (
+            <div className="text-white text-xs opacity-80">
+              {task.category}
+            </div>
+          )}
+          {isCompleted && task.completedAt && (
+            <div className="text-white text-xs opacity-60 mt-1">
+              <Clock size={10} className="inline mr-1" />
+              {new Date(task.completedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          )}
+          {subtaskStats && (
+            <div className="text-white text-xs mt-1" style={{ opacity: isCompleted ? 0.7 : 0.9 }}>
+              ✓ {subtaskStats.completed}/{subtaskStats.total}
+            </div>
+          )}
+        </div>
+        
+        <div className="absolute top-2 right-2 task-card-menu">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setTaskMenuOpen(isMenuOpen ? null : task.id);
+            }}
+            className="p-1.5 rounded bg-white bg-opacity-20 hover:bg-opacity-40 transition-all"
+            title="メニュー"
+          >
+            <MoreVertical size={16} className="text-white" />
+          </button>
+          
+          {isMenuOpen && (
+            <div 
+              className="absolute right-0 mt-1 rounded-lg shadow-lg overflow-hidden z-10"
+              style={{ backgroundColor: '#FDF8F0', minWidth: '140px' }}
+            >
+              {!isCompleted ? (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openMemoModal(task, e);
+                      setTaskMenuOpen(null);
+                    }}
+                    className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                    style={{ color: '#4A4542' }}
+                  >
+                    <FileText size={14} />
+                    メモ
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openSubtaskModal(task, e);
+                      setTaskMenuOpen(null);
+                    }}
+                    className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                    style={{ color: '#4A4542' }}
+                  >
+                    <BookOpen size={14} />
+                    チェックリスト
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEditTask(task, e);
+                      setTaskMenuOpen(null);
+                    }}
+                    className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                    style={{ color: '#4A4542' }}
+                  >
+                    <Edit2 size={14} />
+                    編集
+                  </button>
+                </>
+              ) : (
+                <>
+                  {task.memo && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMemoTask(task);
+                        setMemoContent(task.memo || '');
+                        setShowMemoModal(true);
+                        setTaskMenuOpen(null);
+                      }}
+                      className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                      style={{ color: '#4A4542' }}
+                    >
+                      <FileText size={14} />
+                      メモを見る
+                    </button>
+                  )}
+                  {task.subtasks && task.subtasks.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSubtaskModalTask(task);
+                        setShowSubtaskModal(true);
+                        setTaskMenuOpen(null);
+                      }}
+                      className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                      style={{ color: '#4A4542' }}
+                    >
+                      <BookOpen size={14} />
+                      チェックリスト
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm('この完了済みタスクを削除しますか？')) {
+                        deleteCompletedTask(task);
+                      }
+                      setTaskMenuOpen(null);
+                    }}
+                    className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-100 transition-all text-sm"
+                    style={{ color: '#D37A68' }}
+                  >
+                    <X size={14} />
+                    削除
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5EAD8' }}>
       <div className="sticky top-0 z-50 backdrop-blur-sm" style={{ backgroundColor: 'rgba(245, 234, 216, 0.95)', borderBottom: '1px solid #E8D4BC' }}>
@@ -656,7 +642,6 @@ const StickyNoteTodo = () => {
                   color: formatDateStr(selectedDate) === formatDateStr(new Date()) ? 'white' : '#2D2A27',
                   backgroundColor: formatDateStr(selectedDate) === formatDateStr(new Date()) ? '#C9A882' : 'transparent'
                 }}
-                title="週間ビューを開く"
               >
                 <span className="text-lg md:text-3xl whitespace-nowrap">
                   {selectedDate.getMonth() + 1}/{selectedDate.getDate()}
@@ -670,134 +655,92 @@ const StickyNoteTodo = () => {
               </button>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              {carryOverMode ? (
-                <>
-                  <button 
-                    onClick={() => {
-                      setCarryOverMode(false);
-                      setSelectedCarryOverTasks([]);
-                    }} 
-                    className="px-2 py-1.5 rounded-lg transition-all hover:opacity-80 text-xs"
-                    style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
-                  >
-                    キャンセル
-                  </button>
-                  <button 
-                    onClick={executeCarryOver} 
-                    className="px-2 py-1.5 rounded-lg transition-all hover:opacity-80 text-xs font-medium"
-                    style={{ backgroundColor: '#B8D4A8', color: 'white' }}
-                    disabled={selectedCarryOverTasks.length === 0}
-                  >
-                    決定 ({selectedCarryOverTasks.length})
-                  </button>
-                </>
-              ) : (
-                <>
-                  {formatDateStr(selectedDate) !== formatDateStr(new Date()) && (
-                    <button 
-                      onClick={() => {
-                        setIsTransitioning(true);
-                        setSlideDirection('right');
-                        setTimeout(() => {
-                          setSelectedDate(new Date());
-                          setIsTransitioning(false);
-                          setSlideDirection('');
-                        }, 150);
-                      }} 
-                      className="p-2 rounded-lg transition-all hover:opacity-80 active:scale-95"
-                      style={{ backgroundColor: '#90B6C8', color: 'white' }}
-                      title="今日に戻る"
-                    >
-                      <Calendar size={20} />
-                    </button>
-                  )}
-                  {isPastDate && (
-                    <button 
-                      onClick={() => setCarryOverMode(true)} 
-                      className="p-2 rounded-lg transition-all hover:opacity-80"
-                      style={{ backgroundColor: '#A5BFA8', color: 'white' }}
-                      title="繰り越しモード"
-                    >
-                      <RefreshCw size={20} />
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => {
-                      setShowAddTask(true);
-                    }} 
-                    className="p-2 rounded-lg transition-all hover:opacity-80"
-                    style={{ backgroundColor: '#E6D48F', color: 'white' }}
-                    title="タスク追加"
-                  >
-                    <Plus size={20} />
-                  </button>
-                  <div className="relative menu-container">
-                    <button 
-                      onClick={() => setShowMenu(!showMenu)} 
-                      className="p-2 rounded-lg transition-all hover:opacity-80"
-                      style={{ backgroundColor: '#D37A68', color: 'white' }}
-                      title="メニュー"
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-                    {showMenu && (
-                      <div 
-                        className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
-                        style={{ backgroundColor: '#FDF8F0', border: '2px solid #E8D4BC' }}
-                      >
-                        <button
-                          onClick={() => {
-                            setShowSearchBar(!showSearchBar);
-                            setShowMenu(false);
-                          }}
-                          className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
-                          style={{ color: '#4A4542' }}
-                        >
-                          <Search size={18} />
-                          <span className="text-sm">検索</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            carryOverAllTasks();
-                            setShowMenu(false);
-                          }}
-                          className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
-                          style={{ color: '#4A4542' }}
-                        >
-                          <RefreshCw size={18} />
-                          <span className="text-sm">昨日を一括繰り越し</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            exportData();
-                            setShowMenu(false);
-                          }}
-                          className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
-                          style={{ color: '#4A4542' }}
-                        >
-                          <Download size={18} />
-                          <span className="text-sm">バックアップ</span>
-                        </button>
-                        <label
-                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-all cursor-pointer"
-                          style={{ color: '#4A4542' }}
-                        >
-                          <Upload size={18} />
-                          <span className="text-sm">復元</span>
-                          <input 
-                            type="file" 
-                            accept=".json" 
-                            onChange={(e) => {
-                              importData(e);
-                            }} 
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    )}
-                  </div>
-                </>
+              {formatDateStr(selectedDate) !== formatDateStr(new Date()) && (
+                <button 
+                  onClick={() => {
+                    setIsTransitioning(true);
+                    setSlideDirection('right');
+                    setTimeout(() => {
+                      setSelectedDate(new Date());
+                      setIsTransitioning(false);
+                      setSlideDirection('');
+                    }, 150);
+                  }} 
+                  className="p-2 rounded-lg transition-all hover:opacity-80 active:scale-95"
+                  style={{ backgroundColor: '#90B6C8', color: 'white' }}
+                >
+                  <Calendar size={20} />
+                </button>
               )}
+              <button 
+                onClick={() => setShowAddTask(true)} 
+                className="p-2 rounded-lg transition-all hover:opacity-80"
+                style={{ backgroundColor: '#E6D48F', color: 'white' }}
+              >
+                <Plus size={20} />
+              </button>
+              <div className="relative menu-container">
+                <button 
+                  onClick={() => setShowMenu(!showMenu)} 
+                  className="p-2 rounded-lg transition-all hover:opacity-80"
+                  style={{ backgroundColor: '#D37A68', color: 'white' }}
+                >
+                  <MoreVertical size={20} />
+                </button>
+                {showMenu && (
+                  <div 
+                    className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
+                    style={{ backgroundColor: '#FDF8F0', border: '2px solid #E8D4BC' }}
+                  >
+                    <button
+                      onClick={() => {
+                        setShowSearchBar(!showSearchBar);
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
+                      style={{ color: '#4A4542' }}
+                    >
+                      <Search size={18} />
+                      <span className="text-sm">検索</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        carryOverAllTasks();
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
+                      style={{ color: '#4A4542' }}
+                    >
+                      <RefreshCw size={18} />
+                      <span className="text-sm">昨日を一括繰り越し</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportData();
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-100 transition-all"
+                      style={{ color: '#4A4542' }}
+                    >
+                      <Download size={18} />
+                      <span className="text-sm">バックアップ</span>
+                    </button>
+                    <label
+                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-all cursor-pointer"
+                      style={{ color: '#4A4542' }}
+                    >
+                      <Upload size={18} />
+                      <span className="text-sm">復元</span>
+                      <input 
+                        type="file" 
+                        accept=".json" 
+                        onChange={importData} 
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -821,277 +764,134 @@ const StickyNoteTodo = () => {
                 <button 
                   onClick={() => setSearchKeyword('')}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 transition-all"
-                  title="検索をクリア"
                 >
                   <X size={16} style={{ color: '#8B8680' }} />
                 </button>
               )}
             </div>
           )}
-
-          {showSearchBar && searchKeyword && (
-            <div className="mt-2 text-xs" style={{ color: '#8B8680' }}>
-              検索結果: タスク {todayTasks.length + todayCompleted.length}件
-              {diaryMatchesSearch && ' / 日記にヒット'}
-            </div>
-          )}
         </div>
       </div>
 
-      {showDailyNoteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => {
-          setShowDailyNoteModal(false);
-          setWeekViewSelectedDate(null);
-        }}>
+      <div 
+        className="px-3 py-4 transition-all duration-150"
+        style={{
+          transform: isTransitioning 
+            ? slideDirection === 'left' 
+              ? 'translateX(-20px)' 
+              : 'translateX(20px)'
+            : 'translateX(0)',
+          opacity: isTransitioning ? 0.5 : 1
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="max-w-6xl mx-auto">
           <div 
-            className="rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            style={{ backgroundColor: '#FDF8F0' }}
-            onClick={(e) => e.stopPropagation()}
+            className="mb-6 p-4 rounded-lg border-2 min-h-[200px]" 
+            style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}
           >
-            <div className="sticky top-0 z-10 p-4 border-b-2" style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}>
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#4A4542' }}>
-                  <Calendar size={20} />
-                  週間ビュー
-                </h3>
-                <button 
-                  onClick={() => {
-                    setShowDailyNoteModal(false);
-                    setWeekViewSelectedDate(null);
-                  }} 
-                  className="p-2 rounded-lg transition-all hover:bg-gray-200"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#4A4542' }}>
+              📝 残タスク
+            </h2>
 
-            <div className="p-4">
+            {morningRoutines.length > 0 && (
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-3">
-                  <button 
-                    onClick={() => {
-                      const newDate = new Date(weekViewDate);
-                      newDate.setDate(newDate.getDate() - 7);
-                      setWeekViewDate(newDate);
-                    }}
-                    className="p-2 rounded-lg transition-all hover:opacity-80"
-                    style={{ backgroundColor: '#E8D4BC' }}
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <div className="text-center">
-                    <p className="text-sm font-semibold" style={{ color: '#4A4542' }}>
-                      {weekDays[0].getFullYear()}年 {weekDays[0].getMonth() + 1}月{weekDays[0].getDate()}日 〜 {weekDays[6].getMonth() + 1}月{weekDays[6].getDate()}日
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      const newDate = new Date(weekViewDate);
-                      newDate.setDate(newDate.getDate() + 7);
-                      setWeekViewDate(newDate);
-                    }}
-                    className="p-2 rounded-lg transition-all hover:opacity-80"
-                    style={{ backgroundColor: '#E8D4BC' }}
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-                
-                <div className="overflow-x-auto pb-2">
-                  <div className="flex gap-2 min-w-max">
-                    {weekDays.map((date, index) => {
-                      const taskCount = getTaskCountForDate(date);
-                      const hasNote = hasNoteForDate(date);
-                      const isToday = formatDateStr(date) === formatDateStr(new Date());
-                      const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                      const isSelected = weekViewSelectedDate && formatDateStr(date) === formatDateStr(weekViewSelectedDate);
-                      
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            if (!weekViewSelectedDate) {
-                              setWeekViewSelectedDate(selectedDate);
-                              setTimeout(() => {
-                                setWeekViewSelectedDate(date);
-                              }, 0);
-                            } else {
-                              setWeekViewSelectedDate(date);
-                            }
-                          }}
-                          className="flex-shrink-0 p-3 rounded-lg border-2 transition-all hover:shadow-lg"
-                          style={{
-                            width: '80px',
-                            backgroundColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : 'white',
-                            borderColor: isSelected ? '#D37A68' : isToday ? '#E6D48F' : '#E8D4BC',
-                            color: isSelected ? 'white' : '#4A4542'
-                          }}
-                        >
-                          <div className="text-center">
-                            <div className="text-xs font-medium mb-1" style={{ opacity: 0.8 }}>
-                              {dayNames[date.getDay()]}
-                            </div>
-                            <div className="text-xl font-bold mb-2">
-                              {date.getDate()}
-                            </div>
-                            <div className="space-y-1">
-                              {taskCount.active > 0 && (
-                                <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
-                                  backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#E8D4BC',
-                                  color: isSelected ? 'white' : '#6B6660'
-                                }}>
-                                  📝 {taskCount.active}
-                                </div>
-                              )}
-                              {taskCount.completed > 0 && (
-                                <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
-                                  backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#B8D4A8',
-                                  color: isSelected ? 'white' : '#5A7A4A'
-                                }}>
-                                  ✅ {taskCount.completed}
-                                </div>
-                              )}
-                              {hasNote && (
-                                <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
-                                  backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#90B6C8',
-                                  color: isSelected ? 'white' : 'white'
-                                }}>
-                                  📓
-                                </div>
-                              )}
-                              {taskCount.active === 0 && taskCount.completed === 0 && !hasNote && (
-                                <div className="text-xs" style={{ opacity: 0.5 }}>
-                                  -
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-3">
+                  {morningRoutines.map(task => (
+                    <TaskCard key={task.id} task={task} onComplete={completeTask} />
+                  ))}
                 </div>
               </div>
+            )}
 
-              {weekViewSelectedDate && (
-                <div className="p-4 rounded-lg border-2" style={{ backgroundColor: 'white', borderColor: '#E8D4BC' }}>
-                  <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
-                    <h4 className="text-base font-bold flex items-center gap-2" style={{ color: '#4A4542' }}>
-                      <Calendar size={18} />
-                      {weekViewSelectedDate.getMonth() + 1}月{weekViewSelectedDate.getDate()}日（{['日', '月', '火', '水', '木', '金', '土'][weekViewSelectedDate.getDay()]}）
-                    </h4>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => {
-                          setSelectedDate(weekViewSelectedDate);
-                          setShowDailyNoteModal(false);
-                          setWeekViewSelectedDate(null);
-                        }} 
-                        className="px-3 py-1.5 rounded-lg text-sm transition-all hover:opacity-80 whitespace-nowrap font-medium" 
-                        style={{ backgroundColor: '#D37A68', color: 'white' }}
-                      >
-                        この日に移動
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setShowDailyNoteModal(false);
-                          setWeekViewSelectedDate(null);
-                        }} 
-                        className="px-3 py-1.5 rounded-lg text-sm transition-all hover:opacity-80 whitespace-nowrap" 
-                        style={{ backgroundColor: '#E8D4BC', color: '#6B6660' }}
-                      >
-                        閉じる
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <h5 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#8B8680' }}>
-                      📝 タスク
-                    </h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}>
-                        <h6 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>残タスク ({weekViewTasks.length}件)</h6>
-                        {weekViewTasks.length > 0 ? (
-                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                            {weekViewTasks.map(task => (
-                              <div 
-                                key={task.id}
-                                className="text-sm p-2 rounded"
-                                style={{ backgroundColor: dustyColors[task.category], color: 'white' }}
-                              >
-                                {task.name}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-center py-4" style={{ color: '#8B8680' }}>
-                            残タスクなし
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#E8F4E0', borderColor: '#D4E4C8' }}>
-                        <h6 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>完了済み ({weekViewCompleted.length}件)</h6>
-                        {weekViewCompleted.length > 0 ? (
-                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                            {weekViewCompleted.map((task, index) => (
-                              <div 
-                                key={`${task.id}-${index}`}
-                                className="text-sm p-2 rounded line-through opacity-70"
-                                style={{ backgroundColor: dustyColors[task.category], color: 'white' }}
-                              >
-                                {task.name}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-center py-4" style={{ color: '#8B8680' }}>
-                            完了済みタスクなし
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h5 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#8B8680' }}>
-                      📓 日記
-                    </h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
-                        <h6 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>📝 今日の予定</h6>
-                        {weekViewDailyNote.plan ? (
-                          <div className="text-sm whitespace-pre-wrap max-h-32 overflow-y-auto p-2 rounded" style={{ color: '#6B6660', backgroundColor: 'white' }}>
-                            {weekViewDailyNote.plan}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-center py-4" style={{ color: '#8B8680' }}>
-                            予定なし
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#F5EAD8', borderColor: '#E8D4BC' }}>
-                        <h6 className="text-sm font-semibold mb-2" style={{ color: '#8B8680' }}>💭 振り返り</h6>
-                        {weekViewDailyNote.reflection ? (
-                          <div className="text-sm whitespace-pre-wrap max-h-32 overflow-y-auto p-2 rounded" style={{ color: '#6B6660', backgroundColor: 'white' }}>
-                            {weekViewDailyNote.reflection}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-center py-4" style={{ color: '#8B8680' }}>
-                            振り返りなし
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+            {normalTasks.length > 0 && (
+              <div className="mb-4">
+                <div className="flex flex-wrap gap-3">
+                  {normalTasks.map(task => (
+                    <TaskCard key={task.id} task={task} onComplete={completeTask} />
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
+
+            {eveningRoutines.length > 0 && (
+              <div>
+                <div className="flex flex-wrap gap-3">
+                  {eveningRoutines.map(task => (
+                    <TaskCard key={task.id} task={task} onComplete={completeTask} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {todayTasks.length === 0 && (
+              <div className="text-center py-8 text-sm" style={{ color: '#8B8680' }}>
+                タスクがありません
+              </div>
+            )}
+          </div>
+
+          <div 
+            className="p-4 rounded-lg border-2 min-h-[200px] mb-6" 
+            style={{ backgroundColor: '#E8F4E0', borderColor: '#D4E4C8' }}
+          >
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#4A4542' }}>
+              ✅ 完了済み
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              {todayCompleted.map((task, index) => (
+                <TaskCard key={`${task.id}-${index}`} task={task} onComplete={uncompleteTask} isCompleted={true} />
+              ))}
+            </div>
+            {todayCompleted.length === 0 && (
+              <div className="text-center py-8 text-sm" style={{ color: '#8B8680' }}>
+                完了したタスクはありません
+              </div>
+            )}
+          </div>
+
+          <div 
+            className="p-4 rounded-lg border-2" 
+            style={{ 
+              backgroundColor: '#FDF8F0', 
+              borderColor: '#E8D4BC'
+            }}
+          >
+            <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#4A4542' }}>
+              📓 今日の日記
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <h3 className="text-sm font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#8B8680' }}>
+                  📝 今日の予定
+                </h3>
+                <textarea
+                  value={currentDailyNote.plan}
+                  onChange={(e) => saveDailyNote('plan', e.target.value)}
+                  placeholder="今日やること、目標、予定など..."
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none resize-none text-sm"
+                  style={{ backgroundColor: 'white', color: '#6B6660', minHeight: '140px', border: '1px solid #E8D4BC' }}
+                />
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#8B8680' }}>
+                  💭 振り返り
+                </h3>
+                <textarea
+                  value={currentDailyNote.reflection}
+                  onChange={(e) => saveDailyNote('reflection', e.target.value)}
+                  placeholder="今日の振り返り、気づき、感謝など..."
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none resize-none text-sm"
+                  style={{ backgroundColor: 'white', color: '#6B6660', minHeight: '140px', border: '1px solid #E8D4BC' }}
+                />
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {showAddTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAddTask(false)}>
@@ -1168,382 +968,6 @@ const StickyNoteTodo = () => {
           </div>
         </div>
       )}
-      
-      <div 
-        className="px-3 py-4 transition-all duration-150"
-        style={{
-          transform: isTransitioning 
-            ? slideDirection === 'left' 
-              ? 'translateX(-20px)' 
-              : 'translateX(20px)'
-            : 'translateX(0)',
-          opacity: isTransitioning ? 0.5 : 1
-        }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        <div className="max-w-6xl mx-auto">
-          <div 
-            className="mb-6 p-4 rounded-lg border-2 min-h-[200px]" 
-            style={{ backgroundColor: '#FDF8F0', borderColor: '#E8D4BC' }}
-            onDragOver={handleDragOver}
-            onDrop={handleDropToActive}
-          >
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#4A4542' }}>
-              📝 残タスク
-            </h2>
-
-            {morningRoutines.length > 0 && (
-              <div className="mb-4">
-                <div className="flex flex-wrap gap-3">
-                  {morningRoutines.map(task => {
-                    const subtaskStats = getSubtaskStats(task);
-                    return (
-                      <div
-                        key={task.id}
-                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
-                        style={{ 
-                          backgroundColor: dustyColors[task.category],
-                          minWidth: '140px',
-                          maxWidth: '160px'
-                        }}
-                      >
-                        <div 
-                          className="cursor-pointer"
-                          onClick={() => completeTask(task)}
-                        >
-                          <div className="text-white font-medium text-sm mb-1">{task.name}</div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
-                              🌅 朝
-                            </span>
-                            {task.memo && (
-                              <FileText size={12} className="text-white opacity-70" title="メモあり" />
-                            )}
-                          </div>
-                          {subtaskStats && (
-                            <div className="text-white text-xs mt-1" style={{ opacity: 0.9 }}>
-                              ✓ {subtaskStats.completed}/{subtaskStats.total}
-                            </div>
-                          )}
-                        </div>
-                        <div className="absolute top-2 right-2 flex gap-1">
-                          {task.memo && (
-                            <button
-                              onClick={(e) => openMemoModal(task, e)}
-                              className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                              title="メモ"
-                            >
-                              <FileText size={14} className="text-white" />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => openSubtaskModal(task, e)}
-                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                            title="チェックリスト"
-                          >
-                            <BookOpen size={14} className="text-white" />
-                          </button>
-                          <button
-                            onClick={(e) => startEditTask(task, e)}
-                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                            title="編集"
-                          >
-                            <Edit2 size={14} className="text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {normalTasks.length > 0 && (
-              <div className="mb-4">
-                <div className="flex flex-wrap gap-3">
-                  {normalTasks.map(task => {
-                    const subtaskStats = getSubtaskStats(task);
-                    return (
-                      <div
-                        key={task.id}
-                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
-                        style={{ 
-                          backgroundColor: dustyColors[task.category],
-                          minWidth: '140px',
-                          maxWidth: '160px'
-                        }}
-                      >
-                        <div 
-                          className="cursor-pointer"
-                          onClick={() => completeTask(task)}
-                        >
-                          <div className="text-white font-medium text-sm mb-1">
-                            {task.name}
-                          </div>
-                          {task.carriedOverFrom && (
-                            <div className="text-white text-xs mb-1" style={{ opacity: 0.9 }}>
-                              🔄 {task.carriedOverFrom}から
-                            </div>
-                          )}
-                          <div className="text-white text-xs opacity-80 flex items-center gap-2">
-                            <span>{task.category}</span>
-                            {task.memo && (
-                              <FileText size={12} className="text-white opacity-70" title="メモあり" />
-                            )}
-                          </div>
-                          {subtaskStats && (
-                            <div className="text-white text-xs mt-1" style={{ opacity: 0.9 }}>
-                              ✓ {subtaskStats.completed}/{subtaskStats.total}
-                            </div>
-                          )}
-                        </div>
-                        <div className="absolute top-2 right-2 flex gap-1">
-                          {task.memo && (
-                            <button
-                              onClick={(e) => openMemoModal(task, e)}
-                              className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                              title="メモ"
-                            >
-                              <FileText size={14} className="text-white" />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => openSubtaskModal(task, e)}
-                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                            title="チェックリスト"
-                          >
-                            <BookOpen size={14} className="text-white" />
-                          </button>
-                          <button
-                            onClick={(e) => startEditTask(task, e)}
-                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                            title="編集"
-                          >
-                            <Edit2 size={14} className="text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {eveningRoutines.length > 0 && (
-              <div>
-                <div className="flex flex-wrap gap-3">
-                  {eveningRoutines.map(task => {
-                    const subtaskStats = getSubtaskStats(task);
-                    return (
-                      <div
-                        key={task.id}
-                        className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
-                        style={{ 
-                          backgroundColor: dustyColors[task.category],
-                          minWidth: '140px',
-                          maxWidth: '160px'
-                        }}
-                      >
-                        <div 
-                          className="cursor-pointer"
-                          onClick={() => completeTask(task)}
-                        >
-                          <div className="text-white font-medium text-sm mb-1">{task.name}</div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
-                              🌙 夜
-                            </span>
-                            {task.memo && (
-                              <FileText size={12} className="text-white opacity-70" title="メモあり" />
-                            )}
-                          </div>
-                          {subtaskStats && (
-                            <div className="text-white text-xs mt-1" style={{ opacity: 0.9 }}>
-                              ✓ {subtaskStats.completed}/{subtaskStats.total}
-                            </div>
-                          )}
-                        </div>
-                        <div className="absolute top-2 right-2 flex gap-1">
-                          {task.memo && (
-                            <button
-                              onClick={(e) => openMemoModal(task, e)}
-                              className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                              title="メモ"
-                            >
-                              <FileText size={14} className="text-white" />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => openSubtaskModal(task, e)}
-                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                            title="チェックリスト"
-                          >
-                            <BookOpen size={14} className="text-white" />
-                          </button>
-                          <button
-                            onClick={(e) => startEditTask(task, e)}
-                            className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                            title="編集"
-                          >
-                            <Edit2 size={14} className="text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {todayTasks.length === 0 && (
-              <div className="text-center py-8 text-sm" style={{ color: '#8B8680' }}>
-                {searchKeyword ? '検索結果がありません' : 'タスクがありません。「タスク追加」ボタンから追加しましょう！'}
-              </div>
-            )}
-          </div>
-
-          <div 
-            className="p-4 rounded-lg border-2 min-h-[200px] mb-6" 
-            style={{ backgroundColor: '#E8F4E0', borderColor: '#D4E4C8' }}
-            onDragOver={handleDragOver}
-            onDrop={handleDropToCompleted}
-          >
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#4A4542' }}>
-              ✅ 完了済み
-            </h2>
-            <div className="flex flex-wrap gap-3">
-              {todayCompleted.map((task, index) => {
-                const subtaskStats = getSubtaskStats(task);
-                return (
-                  <div
-                    key={`${task.id}-${index}`}
-                    className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative opacity-70"
-                    style={{ 
-                      backgroundColor: dustyColors[task.category],
-                      minWidth: '140px',
-                      maxWidth: '160px'
-                    }}
-                  >
-                    <div
-                      className="cursor-pointer"
-                      onClick={() => uncompleteTask(task)}
-                    >
-                      <div className="text-white font-medium text-sm mb-1 line-through">{task.name}</div>
-                      {task.isRoutine ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.3)', color: 'white' }}>
-                            {task.routineTime === 'morning' ? '🌅 朝' : '🌙 夜'}
-                          </span>
-                          {task.memo && (
-                            <FileText size={12} className="text-white opacity-70" title="メモあり" />
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-white text-xs opacity-80 flex items-center gap-2">
-                          <span>{task.category}</span>
-                          {task.memo && (
-                            <FileText size={12} className="text-white opacity-70" title="メモあり" />
-                          )}
-                        </div>
-                      )}
-                      <div className="text-white text-xs opacity-60 mt-1">
-                        <Clock size={10} className="inline mr-1" />
-                        {new Date(task.completedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                      {subtaskStats && (
-                        <div className="text-white text-xs mt-1" style={{ opacity: 0.7 }}>
-                          ✓ {subtaskStats.completed}/{subtaskStats.total}
-                        </div>
-                      )}
-                    </div>
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      {task.memo && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMemoTask(task);
-                            setMemoContent(task.memo || '');
-                            setShowMemoModal(true);
-                          }}
-                          className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                          title="メモ"
-                        >
-                          <FileText size={14} className="text-white" />
-                        </button>
-                      )}
-                      {task.subtasks && task.subtasks.length > 0 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSubtaskModalTask(task);
-                            setShowSubtaskModal(true);
-                          }}
-                          className="p-1 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-                          title="チェックリスト"
-                        >
-                          <BookOpen size={14} className="text-white" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {todayCompleted.length === 0 && (
-              <div className="text-center py-8 text-sm" style={{ color: '#8B8680' }}>
-                {searchKeyword ? '検索結果がありません' : '完了したタスクはありません'}
-              </div>
-            )}
-          </div>
-
-          <div 
-            className="p-4 rounded-lg border-2" 
-            style={{ 
-              backgroundColor: '#FDF8F0', 
-              borderColor: diaryMatchesSearch ? '#90B6C8' : '#E8D4BC',
-              borderWidth: diaryMatchesSearch ? '3px' : '2px'
-            }}
-          >
-            <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#4A4542' }}>
-              📓 今日の日記
-              {diaryMatchesSearch && (
-                <span className="text-xs font-normal px-2 py-1 rounded" style={{ backgroundColor: '#90B6C8', color: 'white' }}>
-                  検索ヒット
-                </span>
-              )}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <h3 className="text-sm font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#8B8680' }}>
-                  📝 今日の予定
-                </h3>
-                <textarea
-                  value={currentDailyNote.plan}
-                  onChange={(e) => saveDailyNote('plan', e.target.value)}
-                  placeholder="今日やること、目標、予定など..."
-                  className="w-full px-3 py-2 rounded-lg focus:outline-none resize-none text-sm"
-                  style={{ backgroundColor: 'white', color: '#6B6660', minHeight: '140px', border: '1px solid #E8D4BC' }}
-                />
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#8B8680' }}>
-                  💭 振り返り
-                </h3>
-                <textarea
-                  value={currentDailyNote.reflection}
-                  onChange={(e) => saveDailyNote('reflection', e.target.value)}
-                  placeholder="今日の振り返り、気づき、感謝など..."
-                  className="w-full px-3 py-2 rounded-lg focus:outline-none resize-none text-sm"
-                  style={{ backgroundColor: 'white', color: '#6B6660', minHeight: '140px', border: '1px solid #E8D4BC' }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {showSubtaskModal && subtaskModalTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={closeSubtaskModal}>
@@ -1605,7 +1029,6 @@ const StickyNoteTodo = () => {
                         <button
                           onClick={() => deleteSubtask(subtask.id)}
                           className="flex-shrink-0 p-1 rounded hover:bg-red-100 transition-all opacity-0 group-hover:opacity-100"
-                          title="削除"
                         >
                           <X size={16} style={{ color: '#D37A68' }} />
                         </button>
@@ -1677,12 +1100,6 @@ const StickyNoteTodo = () => {
             </div>
 
             <div className="p-4">
-              <div 
-                className="text-sm font-medium px-2 py-1 rounded inline-block mb-3"
-                style={{ backgroundColor: dustyColors[memoTask?.category], color: 'white' }}
-              >
-                {memoTask?.name}
-              </div>
               <textarea
                 value={memoContent}
                 onChange={(e) => setMemoContent(e.target.value)}
@@ -1782,6 +1199,22 @@ const StickyNoteTodo = () => {
                   <option value="evening">夜</option>
                 </select>
               )}
+              
+              <div className="pt-4 border-t-2" style={{ borderColor: '#E8D4BC' }}>
+                <button
+                  onClick={() => {
+                    if (window.confirm('このタスクを削除しますか？')) {
+                      deleteTask(editingTask);
+                      setEditingTask(null);
+                    }
+                  }}
+                  className="w-full px-4 py-2 rounded-lg transition-all hover:opacity-80 text-sm flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#D37A68', color: 'white' }}
+                >
+                  <X size={16} />
+                  タスクを削除
+                </button>
+              </div>
             </div>
 
             <div className="p-4 border-t-2 flex gap-2" style={{ borderColor: '#E8D4BC' }}>
