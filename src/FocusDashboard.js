@@ -73,21 +73,29 @@ const StickyNoteTodo = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // メインメニュー（ヘッダーの...ボタン）の外クリック検知
       if (showMenu && !event.target.closest('.menu-container')) {
         setShowMenu(false);
       }
-      if (taskMenuOpen && !event.target.closest('.task-card-menu')) {
-        setTaskMenuOpen(null);
+      // タスクカードメニューの外クリック検知（メニューが開いている場合のみ）
+      if (taskMenuOpen !== null) {
+        const clickedInsideMenu = event.target.closest('.task-card-menu');
+        if (!clickedInsideMenu) {
+          setTaskMenuOpen(null);
+        }
       }
     };
     
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
+    // メニューが開いている時だけリスナーを登録
+    if (showMenu || taskMenuOpen !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('touchstart', handleClickOutside);
+      };
+    }
   }, [showMenu, taskMenuOpen]);
 
   const formatDateStr = (date) => {
@@ -464,6 +472,11 @@ const StickyNoteTodo = () => {
     const subtaskStats = getSubtaskStats(task);
     const isMenuOpen = taskMenuOpen === task.id;
     
+    const handleMenuClick = (e) => {
+      e.stopPropagation();
+      setTaskMenuOpen(isMenuOpen ? null : task.id);
+    };
+    
     return (
       <div
         className="p-4 rounded-lg shadow-sm transition-all hover:shadow-md group relative"
@@ -512,10 +525,7 @@ const StickyNoteTodo = () => {
         
         <div className="absolute top-2 right-2 task-card-menu">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setTaskMenuOpen(isMenuOpen ? null : task.id);
-            }}
+            onClick={handleMenuClick}
             className="p-1.5 rounded bg-white bg-opacity-20 hover:bg-opacity-40 transition-all"
             title="メニュー"
           >
