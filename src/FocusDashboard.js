@@ -54,6 +54,9 @@ const StickyNoteTodo = () => {
   const [isRecordingPlan, setIsRecordingPlan] = useState(false);
   const [isRecordingReflection, setIsRecordingReflection] = useState(false);
   const [recognition, setRecognition] = useState(null);
+  const [showDailyNoteModal, setShowDailyNoteModal] = useState(false);
+  const [weekViewDate, setWeekViewDate] = useState(new Date());
+  const [weekViewSelectedDate, setWeekViewSelectedDate] = useState(null);
 
   const dustyColors = {
     '仕事': '#D37A68',
@@ -133,6 +136,89 @@ const StickyNoteTodo = () => {
   };
 
   const selectedDateStr = useMemo(() => formatDateStr(selectedDate), [selectedDate]);
+
+  const getWeekStart = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    return new Date(d.setDate(diff));
+  };
+
+  const weekDays = useMemo(() => {
+    const start = getWeekStart(weekViewDate);
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      return date;
+    });
+  }, [weekViewDate]);
+
+  const getTaskCountForDate = (date) => {
+    const dateStr = formatDateStr(date);
+    const dayTasks = tasks.filter(t => {
+      if (t.isRoutine) {
+        const taskCreatedStr = formatDateStr(t.createdAt);
+        const isCompletedOnDate = completedTasks.some(ct => 
+          ct.id === t.id && formatDateStr(ct.completedAt) === dateStr
+        );
+        return dateStr >= taskCreatedStr && !isCompletedOnDate;
+      }
+      const taskDateStr = formatDateStr(t.createdAt);
+      const isCompletedOnDate = completedTasks.some(ct => 
+        ct.id === t.id && formatDateStr(ct.completedAt) === dateStr
+      );
+      return taskDateStr === dateStr && !isCompletedOnDate;
+    });
+    
+    const dayCompleted = completedTasks.filter(ct => {
+      const completedDateStr = formatDateStr(ct.completedAt);
+      return completedDateStr === dateStr;
+    });
+
+    return { active: dayTasks.length, completed: dayCompleted.length };
+  };
+
+  const hasNoteForDate = (date) => {
+    const dateStr = formatDateStr(date);
+    const note = dailyNotes[dateStr];
+    return note && (note.plan || note.reflection);
+  };
+
+  const weekViewSelectedDateStr = useMemo(() => 
+    weekViewSelectedDate ? formatDateStr(weekViewSelectedDate) : '', 
+    [weekViewSelectedDate]
+  );
+
+  const weekViewTasks = useMemo(() => {
+    if (!weekViewSelectedDate) return [];
+    return tasks.filter(t => {
+      if (t.isRoutine) {
+        const taskCreatedStr = formatDateStr(t.createdAt);
+        const isCompletedOnDate = completedTasks.some(ct => 
+          ct.id === t.id && formatDateStr(ct.completedAt) === weekViewSelectedDateStr
+        );
+        return weekViewSelectedDateStr >= taskCreatedStr && !isCompletedOnDate;
+      }
+      const taskDateStr = formatDateStr(t.createdAt);
+      const isCompletedOnDate = completedTasks.some(ct => 
+        ct.id === t.id && formatDateStr(ct.completedAt) === weekViewSelectedDateStr
+      );
+      return taskDateStr === weekViewSelectedDateStr && !isCompletedOnDate;
+    });
+  }, [tasks, weekViewSelectedDate, weekViewSelectedDateStr, completedTasks]);
+
+  const weekViewCompleted = useMemo(() => {
+    if (!weekViewSelectedDate) return [];
+    return completedTasks.filter(ct => {
+      const completedDateStr = formatDateStr(ct.completedAt);
+      return completedDateStr === weekViewSelectedDateStr;
+    });
+  }, [completedTasks, weekViewSelectedDate, weekViewSelectedDateStr]);
+
+  const weekViewDailyNote = useMemo(() => {
+    if (!weekViewSelectedDate) return { plan: '', reflection: '' };
+    return dailyNotes[weekViewSelectedDateStr] || { plan: '', reflection: '' };
+  }, [dailyNotes, weekViewSelectedDate, weekViewSelectedDateStr]);
 
   const matchesSearch = (text) => {
     if (!searchKeyword.trim()) return true;
